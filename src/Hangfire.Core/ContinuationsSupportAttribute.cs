@@ -1,4 +1,4 @@
-﻿// This file is part of Hangfire.
+// This file is part of Hangfire.
 // Copyright © 2013-2014 Sergey Odinokov.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
@@ -16,22 +16,23 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Logging;
 using Hangfire.States;
 using Hangfire.Storage;
-using Newtonsoft.Json;
 
 namespace Hangfire
 {
     public class ContinuationsSupportAttribute : JobFilterAttribute, IElectStateFilter, IApplyStateFilter
     {
         private static readonly TimeSpan AddJobLockTimeout = TimeSpan.FromMinutes(1);
-        private static readonly TimeSpan ContinuationStateFetchTimeout = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan ContinuationStateFetchTimeout = TimeSpan.FromMinutes(1);
+        private static readonly TimeSpan ContinuationInvalidTimeout = TimeSpan.FromMinutes(15);
 
-        private static readonly ILog Logger = LogProvider.For<ContinuationsSupportAttribute>();
+        private readonly ILog _logger = LogProvider.For<ContinuationsSupportAttribute>();
 
         private readonly HashSet<string> _knownFinalStates;
         private readonly IBackgroundJobStateChanger _stateChanger;
@@ -83,6 +84,18 @@ namespace Hangfire
             {
                 context.JobExpirationTimeout = awaitingState.Expiration;
             }
+        }
+
+        internal static List<Continuation> DeserializeContinuations(string serialized)
+        {
+            var continuations =  SerializationHelper.Deserialize<List<Continuation>>(serialized);
+
+            if (continuations != null && continuations.TrueForAll(x => x.JobId == null))
+            {
+                continuations = SerializationHelper.Deserialize<List<Continuation>>(serialized, SerializationOption.User);
+            }
+
+            return continuations ?? new List<Continuation>();
         }
 
         private void AddContinuation(ElectStateContext context, AwaitingState awaitingState)
@@ -148,7 +161,7 @@ namespace Hangfire
             {
                 if (String.IsNullOrWhiteSpace(continuation.JobId)) continue;
 
-                var currentState = GetContinuaionState(context, continuation.JobId, ContinuationStateFetchTimeout);
+                var currentState = GetContinuationState(context, continuation.JobId, ContinuationStateFetchTimeout);
                 if (currentState == null)
                 {
                     continue;
@@ -169,9 +182,7 @@ namespace Hangfire
                 {
                     try
                     {
-                        nextState = JsonConvert.DeserializeObject<IState>(
-                            currentState.Data["NextState"],
-                            new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Objects });
+                        nextState = SerializationHelper.Deserialize<IState>(currentState.Data["NextState"], SerializationOption.TypedInternal);
                     }
                     catch (Exception ex)
                     {
@@ -202,11 +213,11 @@ namespace Hangfire
             }
         }
 
-        private static StateData GetContinuaionState(ElectStateContext context, string continuationJobId, TimeSpan timeout)
+        private StateData GetContinuationState(ElectStateContext context, string continuationJobId, TimeSpan timeout)
         {
             StateData currentState = null;
 
-            var started = DateTime.UtcNow;
+            var started = Stopwatch.StartNew();
             var firstAttempt = true;
 
             while (true)
@@ -214,7 +225,7 @@ namespace Hangfire
                 var continuationData = context.Connection.GetJobData(continuationJobId);
                 if (continuationData == null)
                 {
-                    Logger.Warn(
+                    _logger.Warn(
                         $"Can not start continuation '{continuationJobId}' for background job '{context.BackgroundJob.Id}': continuation does not exist.");
 
                     break;
@@ -226,13 +237,23 @@ namespace Hangfire
                     break;
                 }
 
-                if (DateTime.UtcNow >= started.Add(timeout))
+                if (DateTime.UtcNow - continuationData.CreatedAt > ContinuationInvalidTimeout)
                 {
-                    throw new TimeoutException(
-                        $"Can not start continuation '{continuationJobId}' for background job '{context.BackgroundJob.Id}': timeout expired while trying to fetch continuation state.");
+                    _logger.Warn(
+                        $"Continuation '{continuationJobId}' has been ignored: it was deemed to be aborted, because its state is still non-initialized.");
+
+                    break;
                 }
 
-                Thread.Sleep(firstAttempt ? 0 : 1);
+                if (started.Elapsed >= timeout)
+                {
+                    _logger.Warn(
+                        $"Can not start continuation '{continuationJobId}' for background job '{context.BackgroundJob.Id}': timeout expired while trying to fetch continuation state.");
+
+                    break;
+                }
+
+                Thread.Sleep(firstAttempt ? 0 : 100);
                 firstAttempt = false;
             }
 
@@ -242,13 +263,12 @@ namespace Hangfire
         private static void SetContinuations(
             IStorageConnection connection, string jobId, List<Continuation> continuations)
         {
-            connection.SetJobParameter(jobId, "Continuations", JobHelper.ToJson(continuations));
+            connection.SetJobParameter(jobId, "Continuations", SerializationHelper.Serialize(continuations));
         }
 
         private static List<Continuation> GetContinuations(IStorageConnection connection, string jobId)
         {
-            return JobHelper.FromJson<List<Continuation>>(connection.GetJobParameter(
-                jobId, "Continuations")) ?? new List<Continuation>();
+            return DeserializeContinuations(connection.GetJobParameter(jobId, "Continuations"));
         }
 
         void IApplyStateFilter.OnStateUnapplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
