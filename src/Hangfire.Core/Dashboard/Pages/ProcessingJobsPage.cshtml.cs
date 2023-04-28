@@ -80,7 +80,7 @@ WriteLiteral("\r\n");
     int.TryParse(Query("count"), out perPage);
 
     var monitor = Storage.GetMonitoringApi();
-    var pager = new Pager(from, perPage, monitor.ProcessingCount());
+    var pager = new Pager(from, perPage, DashboardOptions.DefaultRecordsPerPage, monitor.ProcessingCount());
     var processingJobs = monitor.ProcessingJobs(pager.FromRecord, pager.RecordsPerPage);
     var servers = monitor.Servers();
 
@@ -529,7 +529,7 @@ WriteLiteral("                                                <span title=\"");
             
             #line default
             #line hidden
-WriteLiteral("\" class=\"glyphicon glyphicon-warning-sign\" style=\"font-size: 10px;\"></span>\r\n");
+WriteLiteral("\" class=\"glyphicon glyphicon-warning-sign glyphicon-sm\"></span>\r\n");
 
 
             

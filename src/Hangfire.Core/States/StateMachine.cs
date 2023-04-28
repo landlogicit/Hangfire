@@ -1,5 +1,4 @@
-// This file is part of Hangfire.
-// Copyright � 2013-2014 Sergey Odinokov.
+// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -33,30 +32,34 @@ namespace Hangfire.States
         }
 
         internal StateMachine(
-            [NotNull] IJobFilterProvider filterProvider, 
+            [NotNull] IJobFilterProvider filterProvider,
             [NotNull] IStateMachine innerStateMachine)
         {
             if (filterProvider == null) throw new ArgumentNullException(nameof(filterProvider));
             if (innerStateMachine == null) throw new ArgumentNullException(nameof(innerStateMachine));
-            
+
             _filterProvider = filterProvider;
             _innerStateMachine = innerStateMachine;
         }
 
+        public IStateMachine InnerStateMachine => _innerStateMachine;
+
         public IState ApplyState(ApplyStateContext initialContext)
         {
+            if (initialContext == null) throw new ArgumentNullException(nameof(initialContext));
+
             var filterInfo = GetFilters(initialContext.BackgroundJob.Job);
             var electFilters = filterInfo.ElectStateFilters;
             var applyFilters = filterInfo.ApplyStateFilters;
 
             // Electing a a state
-            var electContext = new ElectStateContext(initialContext);
+            var electContext = new ElectStateContext(initialContext, this);
 
             foreach (var filter in electFilters)
             {
                 electContext.Profiler.InvokeMeasured(
-                    filter,
-                    x => x.OnStateElection(electContext),
+                    Tuple.Create(filter, electContext),
+                    InvokeOnStateElection,
                     $"OnStateElection for {electContext.BackgroundJob.Id}");
             }
 
@@ -74,20 +77,59 @@ namespace Hangfire.States
             foreach (var filter in applyFilters)
             {
                 context.Profiler.InvokeMeasured(
-                    filter,
-                    x => x.OnStateUnapplied(context, context.Transaction),
+                    Tuple.Create(filter, context),
+                    InvokeOnStateUnapplied,
                     $"OnStateUnapplied for {context.BackgroundJob.Id}");
             }
 
             foreach (var filter in applyFilters)
             {
                 context.Profiler.InvokeMeasured(
-                    filter,
-                    x => x.OnStateApplied(context, context.Transaction),
+                    Tuple.Create(filter, context),
+                    InvokeOnStateApplied,
                     $"OnStateApplied for {context.BackgroundJob.Id}");
             }
 
             return _innerStateMachine.ApplyState(context);
+        }
+
+        private static void InvokeOnStateElection(Tuple<IElectStateFilter, ElectStateContext> x)
+        {
+            try
+            {
+                x.Item1.OnStateElection(x.Item2);
+            }
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
+            {
+                ex.PreserveOriginalStackTrace();
+                throw;
+            }
+        }
+
+        private static void InvokeOnStateApplied(Tuple<IApplyStateFilter, ApplyStateContext> x)
+        {
+            try
+            {
+                x.Item1.OnStateApplied(x.Item2, x.Item2.Transaction);
+            }
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
+            {
+                ex.PreserveOriginalStackTrace();
+                throw;
+            }
+        }
+
+        private static void InvokeOnStateUnapplied(Tuple<IApplyStateFilter, ApplyStateContext> x)
+        {
+            try
+            {
+                x.Item1.OnStateUnapplied(x.Item2, x.Item2.Transaction);
+            }
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
+            {
+                ex.PreserveOriginalStackTrace();
+                throw;
+            }
         }
 
         private JobFilterInfo GetFilters(Job job)

@@ -13,6 +13,15 @@ namespace ConsoleSample
     {
         private static readonly Random Rand = new Random();
 
+        public async Task<int> WriteIndex([FromResult] int? index)
+        {
+            if (index == null) throw new ArgumentNullException(nameof(index));
+
+            Console.Write("Hello, world!\r\n"[index.Value]);
+            await Task.Yield();
+            return index.Value + 1;
+        }
+
         public async Task EmptyDefault()
         {
             await Task.Yield();
@@ -24,6 +33,7 @@ namespace ConsoleSample
             await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
         }
 
+        [Obsolete("Please use EmptyDefault method instead with `critical` queue directly")]
         [Queue("critical")]
         public async Task EmptyCritical()
         {
@@ -39,7 +49,7 @@ namespace ConsoleSample
         }
 
         [Queue("critical")]
-        public async Task<int> Random(int number)
+        public async Task<int> Random([FromResult] int? number)
         {
             int time;
             lock (Rand)

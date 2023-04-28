@@ -73,7 +73,7 @@ WriteLiteral("\r\n");
             
             #line 9 "..\..\Dashboard\Pages\FetchedJobsPage.cshtml"
   
-    Layout = new LayoutPage(Queue.ToUpperInvariant());
+    Layout = new LayoutPage(Queue);
 
     int from, perPage;
 
@@ -81,7 +81,7 @@ WriteLiteral("\r\n");
     int.TryParse(Query("count"), out perPage);
 
     var monitor = Storage.GetMonitoringApi();
-    var pager = new Pager(from, perPage, monitor.FetchedCount(Queue));
+    var pager = new Pager(from, perPage, DashboardOptions.DefaultRecordsPerPage, monitor.FetchedCount(Queue));
     var fetchedJobs = monitor.FetchedJobs(Queue, pager.FromRecord, pager.RecordsPerPage);
 
 
@@ -106,7 +106,7 @@ WriteLiteral("\r\n    </div>\r\n    <div class=\"col-md-9\">\r\n        ");
    Write(Html.Breadcrumbs(Strings.FetchedJobsPage_Title, new Dictionary<string, string>
         {
             { "Queues", Url.LinkToQueues() },
-            { Queue.ToUpperInvariant(), Url.Queue(Queue) }
+            { Queue, Url.Queue(Queue) }
         }));
 
             
@@ -117,7 +117,7 @@ WriteLiteral("\r\n\r\n        <h1 class=\"page-header\">\r\n            ");
 
             
             #line 34 "..\..\Dashboard\Pages\FetchedJobsPage.cshtml"
-       Write(Queue.ToUpperInvariant());
+       Write(Queue);
 
             
             #line default
@@ -127,7 +127,7 @@ WriteLiteral(" <small>");
 
             
             #line 34 "..\..\Dashboard\Pages\FetchedJobsPage.cshtml"
-                                        Write(Strings.FetchedJobsPage_Title);
+                     Write(Strings.FetchedJobsPage_Title);
 
             
             #line default

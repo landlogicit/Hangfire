@@ -1,5 +1,4 @@
-﻿// This file is part of Hangfire.
-// Copyright © 2013-2014 Sergey Odinokov.
+﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -80,10 +79,12 @@ namespace Hangfire.Client
 
             try
             {
+                context.Factory = this;
+
                 var createdContext = CreateWithFilters(context, filterInfo.ClientFilters);
                 return createdContext.BackgroundJob;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
             {
                 var exceptionContext = new ClientExceptionContext(context, ex);
 
@@ -94,6 +95,10 @@ namespace Hangfire.Client
                 }
 
                 return null;
+            }
+            finally
+            {
+                context.Factory = null;
             }
         }
 
@@ -125,8 +130,8 @@ namespace Hangfire.Client
             Func<CreatedContext> continuation)
         {
             preContext.Profiler.InvokeMeasured(
-                filter,
-                x => x.OnCreating(preContext),
+                Tuple.Create(filter, preContext),
+                InvokeOnCreating,
                 $"OnCreating for {preContext.Job.Type.FullName}.{preContext.Job.Method.Name}");
 
             if (preContext.Canceled)
@@ -140,14 +145,14 @@ namespace Hangfire.Client
             {
                 postContext = continuation();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
             {
                 wasError = true;
                 postContext = new CreatedContext(preContext, null, false, ex);
 
                 postContext.Profiler.InvokeMeasured(
-                    filter,
-                    x => x.OnCreated(postContext),
+                    Tuple.Create(filter, postContext),
+                    InvokeOnCreated,
                     $"OnCreated for {postContext.BackgroundJob?.Id ?? "(null)"}");
 
                 if (!postContext.ExceptionHandled)
@@ -159,12 +164,38 @@ namespace Hangfire.Client
             if (!wasError)
             {
                 postContext.Profiler.InvokeMeasured(
-                    filter,
-                    x => x.OnCreated(postContext),
+                    Tuple.Create(filter, postContext),
+                    InvokeOnCreated,
                     $"OnCreated for {postContext.BackgroundJob?.Id ?? "(null)"}");
             }
 
             return postContext;
+        }
+
+        private static void InvokeOnCreating(Tuple<IClientFilter, CreatingContext> x)
+        {
+            try
+            {
+                x.Item1.OnCreating(x.Item2);
+            }
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
+            {
+                ex.PreserveOriginalStackTrace();
+                throw;
+            }
+        }
+
+        private static void InvokeOnCreated(Tuple<IClientFilter, CreatedContext> x)
+        {
+            try
+            {
+                x.Item1.OnCreated(x.Item2);
+            }
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
+            {
+                ex.PreserveOriginalStackTrace();
+                throw;
+            }
         }
 
         private static void InvokeExceptionFilters(
@@ -173,9 +204,22 @@ namespace Hangfire.Client
             foreach (var filter in filters.Reverse())
             {
                 context.Profiler.InvokeMeasured(
-                    filter,
-                    x => x.OnClientException(context),
+                    Tuple.Create(filter, context),
+                    InvokeOnClientException,
                     $"OnClientException for {context.Job.Type.FullName}.{context.Job.Method.Name}");
+            }
+        }
+
+        private static void InvokeOnClientException(Tuple<IClientExceptionFilter, ClientExceptionContext> x)
+        {
+            try
+            {
+                x.Item1.OnClientException(x.Item2);
+            }
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
+            {
+                ex.PreserveOriginalStackTrace();
+                throw;
             }
         }
     }

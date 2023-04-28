@@ -1,5 +1,4 @@
-﻿// This file is part of Hangfire.
-// Copyright © 2013-2014 Sergey Odinokov.
+﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -43,12 +42,14 @@ namespace Hangfire.Dashboard
 
         public string To(string relativePath)
         {
-            return
+            return _context.Options.PrefixPath +
+                   (
 #if FEATURE_OWIN
-                _owinContext?.Request.PathBase.Value ??
+                       _owinContext?.Request.PathBase.Value ??
 #endif
-                _context.Request.PathBase
-                + relativePath;
+                       _context.Request.PathBase
+                       + relativePath
+                   );
         }
 
         public string Home()

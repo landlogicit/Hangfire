@@ -1,5 +1,4 @@
-// This file is part of Hangfire.
-// Copyright © 2019 Sergey Odinokov.
+// This file is part of Hangfire. Copyright © 2019 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -55,7 +54,7 @@ namespace Hangfire
                     ? timeZoneResolver.GetTimeZoneById(recurringJob["TimeZoneId"])
                     : TimeZoneInfo.Utc;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
             {
                 _errors.Add(ex);
             }
@@ -74,7 +73,7 @@ namespace Hangfire
 
                 Job = InvocationData.DeserializePayload(recurringJob["Job"]).DeserializeJob();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
             {
                 _errors.Add(ex);
             }
@@ -103,6 +102,19 @@ namespace Hangfire
                 CreatedAt = now;
             }
 
+            if (recurringJob.TryGetValue("Misfire", out var misfireStr))
+            {
+                MisfireHandling = (MisfireHandlingMode)Enum.Parse(typeof(MisfireHandlingMode), misfireStr);
+                if (!Enum.IsDefined(typeof(MisfireHandlingMode), MisfireHandling))
+                {
+                    throw new NotSupportedException(String.Format("Misfire option '{0}' is not supported.", (int)MisfireHandling));
+                }
+            }
+            else
+            {
+                MisfireHandling = MisfireHandlingMode.Relaxed;
+            }
+
             if (recurringJob.ContainsKey("V") && !String.IsNullOrWhiteSpace(recurringJob["V"]))
             {
                 Version = int.Parse(recurringJob["V"], CultureInfo.InvariantCulture);
@@ -121,6 +133,7 @@ namespace Hangfire
         public string Cron { get; set; }
         public TimeZoneInfo TimeZone { get; set; }
         public Job Job { get; set; }
+        public MisfireHandlingMode MisfireHandling { get; set; }
 
         public DateTime CreatedAt { get; }
         public DateTime? NextExecution { get; }
@@ -129,6 +142,8 @@ namespace Hangfire
         public string LastJobId { get; set; }
         public int? Version { get; set; }
         public int RetryAttempt { get; set; }
+
+        public Exception[] Errors => _errors.ToArray();
 
         public bool TrySchedule(out DateTime? nextExecution, out Exception error)
         {
@@ -140,7 +155,7 @@ namespace Hangfire
                 return false;
             }
 
-            return TryGetNextExecution(out nextExecution, out error);
+            return TryGetNextExecution(scheduleChanged: false, out nextExecution, out error);
         }
 
         public bool IsChanged(out IReadOnlyDictionary<string, string> changedFields, out DateTime? nextExecution)
@@ -149,14 +164,15 @@ namespace Hangfire
             return changedFields.Count > 0 || nextExecution != NextExecution;
         }
 
-        public void ScheduleRetry(TimeSpan delay, out IReadOnlyDictionary<string, string> changedFields, out DateTime? nextExecution)
+        public void ScheduleRetry(TimeSpan delay, string error, out IReadOnlyDictionary<string, string> changedFields, out DateTime? nextExecution)
         {
             RetryAttempt++;
             nextExecution = _now.Add(delay);
 
             var result = new Dictionary<string, string>
             {
-                { "RetryAttempt", RetryAttempt.ToString(CultureInfo.InvariantCulture) }
+                { "RetryAttempt", RetryAttempt.ToString(CultureInfo.InvariantCulture) },
+                { "Error", error ?? String.Empty }
             };
             
             if (!_recurringJob.ContainsKey("V"))
@@ -167,15 +183,14 @@ namespace Hangfire
             changedFields = result;
         }
 
-        public void Disable([NotNull] Exception error, out IReadOnlyDictionary<string, string> changedFields, out DateTime? nextExecution)
+        public void Disable(string error, out IReadOnlyDictionary<string, string> changedFields, out DateTime? nextExecution)
         {
-            if (error == null) throw new ArgumentNullException(nameof(error));
             nextExecution = null;
 
             var result = new Dictionary<string, string>
             {
                 { "NextExecution", String.Empty },
-                { "Error", error.Message.Substring(0, Math.Min(100, error.Message.Length)) }
+                { "Error", error ?? String.Empty }
             };
 
             if (!_recurringJob.ContainsKey("V"))
@@ -186,7 +201,7 @@ namespace Hangfire
             changedFields = result;
         }
 
-        public IReadOnlyDictionary<string, string> GetChangedFields(out DateTime? nextExecution)
+        private IReadOnlyDictionary<string, string> GetChangedFields(out DateTime? nextExecution)
         {
             var result = new Dictionary<string, string>();
 
@@ -227,7 +242,11 @@ namespace Hangfire
                 result.Add("LastExecution", serializedLastExecution ?? String.Empty);
             }
 
-            TryGetNextExecution(out nextExecution, out _);
+            var timeZoneChanged = !TimeZone.Id.Equals(_recurringJob.ContainsKey("TimeZoneId")
+                ? _recurringJob["TimeZoneId"]
+                : TimeZoneInfo.Utc.Id);
+
+            TryGetNextExecution(result.ContainsKey("Cron") || timeZoneChanged, out nextExecution, out _);
             var serializedNextExecution = nextExecution.HasValue ? JobHelper.SerializeDateTime(nextExecution.Value) : null;
 
             if ((_recurringJob.ContainsKey("NextExecution") ? _recurringJob["NextExecution"] : null) !=
@@ -239,6 +258,13 @@ namespace Hangfire
             if ((_recurringJob.ContainsKey("LastJobId") ? _recurringJob["LastJobId"] : null) != LastJobId)
             {
                 result.Add("LastJobId", LastJobId ?? String.Empty);
+            }
+
+            var misfireHandlingValue = MisfireHandling.ToString("D");
+            if ((!_recurringJob.ContainsKey("Misfire") && MisfireHandling != MisfireHandlingMode.Relaxed) ||
+                (_recurringJob.ContainsKey("Misfire") && _recurringJob["Misfire"] != misfireHandlingValue))
+            {
+                result.Add("Misfire", misfireHandlingValue);
             }
 
             if (!_recurringJob.ContainsKey("V"))
@@ -284,19 +310,19 @@ namespace Hangfire
             return CronExpression.Parse(cronExpression, format);
         }
 
-        private bool TryGetNextExecution(out DateTime? nextExecution, out Exception exception)
+        private bool TryGetNextExecution(bool scheduleChanged, out DateTime? nextExecution, out Exception exception)
         {
             try
             {
                 nextExecution = ParseCronExpression(Cron).GetNextOccurrence(
-                    LastExecution ?? CreatedAt.AddSeconds(-1),
+                    scheduleChanged ? _now.AddSeconds(-1) : LastExecution ?? CreatedAt.AddSeconds(-1),
                     TimeZone,
                     inclusive: false);
 
                 exception = null;
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex.IsCatchableExceptionType())
             {
                 exception = ex;
                 nextExecution = null;

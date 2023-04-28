@@ -96,13 +96,13 @@ WriteLiteral("\r\n");
     Pager pager = null;
     List<string> jobIds = null;
 
-    using (var connection = Storage.GetConnection())
+    using (var connection = Storage.GetReadOnlyConnection())
     {
         var storageConnection = connection as JobStorageConnection;
 
         if (storageConnection != null)
         {
-            pager = new Pager(@from, perPage, storageConnection.GetSetCount("retries"));
+            pager = new Pager(@from, perPage, DashboardOptions.DefaultRecordsPerPage, storageConnection.GetSetCount("retries"));
             jobIds = storageConnection.GetRangeFromSet("retries", pager.FromRecord, pager.FromRecord + pager.RecordsPerPage - 1);
         }
     }
@@ -411,7 +411,7 @@ WriteLiteral("</th>\r\n                                </tr>\r\n                
                                     JobData jobData;
                                     StateData stateData;
 
-                                    using (var connection = Storage.GetConnection())
+                                    using (var connection = Storage.GetReadOnlyConnection())
                                     {
                                         jobData = connection.GetJobData(jobId);
                                         stateData = connection.GetStateData(jobId);

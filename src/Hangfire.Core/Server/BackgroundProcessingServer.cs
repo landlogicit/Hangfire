@@ -1,5 +1,4 @@
-﻿// This file is part of Hangfire.
-// Copyright © 2013-2014 Sergey Odinokov.
+﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -32,7 +31,7 @@ namespace Hangfire.Server
     /// <remarks>
     /// Immediately starts the processes in a background thread.
     /// Responsible for announcing/removing a server, bound to a storage.
-    /// Wraps all the processes with a infinite loop and automatic retry.
+    /// Wraps all the processes with an infinite loop and automatic retry.
     /// Executes all the processes in a single context.
     /// Uses timeout in dispose method, waits for all the components, cancel signals shutdown
     /// Contains some required processes and uses storage processes.
@@ -49,6 +48,7 @@ namespace Hangfire.Server
         private readonly CancellationTokenSource _stoppingCts = new CancellationTokenSource();
         private readonly CancellationTokenSource _stoppedCts = new CancellationTokenSource();
         private readonly CancellationTokenSource _shutdownCts = new CancellationTokenSource();
+        private CancellationTokenRegistration _shutdownRegistration;
 
         private readonly IBackgroundServerProcess _process;
         private readonly BackgroundProcessingServerOptions _options;
@@ -119,6 +119,8 @@ namespace Hangfire.Server
             AppDomain.CurrentDomain.DomainUnload += OnCurrentDomainUnload;
             AppDomain.CurrentDomain.ProcessExit += OnCurrentDomainUnload;
 #endif
+
+            _shutdownRegistration = AspNetShutdownDetector.GetShutdownToken().Register(OnAspNetShutdown);
         }
 
         public void SendStop()
@@ -149,6 +151,8 @@ namespace Hangfire.Server
         public void Dispose()
         {
             if (Volatile.Read(ref _disposed) == 1) return;
+
+            _shutdownRegistration.Dispose();
 
             if (!_stoppingCts.IsCancellationRequested)
             {
@@ -183,7 +187,36 @@ namespace Hangfire.Server
             _stoppedCts.Cancel();
             _shutdownCts.Cancel();
 
-            WaitForShutdown(_options.LastChanceTimeout);
+            if (!AspNetShutdownDetector.IsSucceeded)
+            {
+                // ASP.NET can be very sensitive to any delays during AppDomain unload.
+                WaitForShutdown(_options.LastChanceTimeout);
+            }
+        }
+
+        private void OnAspNetShutdown()
+        {
+            if (Volatile.Read(ref _disposed) == 1)
+            {
+                // Exit if our server was already disposed, there's no need to
+                // throw ObjectDisposedException when unnecessary.
+                return;
+            }
+
+            try
+            {
+                // When ASP.NET shutdown is detected, we only need to send a stop
+                // signal to our background processing servers to allow correctly
+                // await for background processing server shutdown during a direct
+                // or indirect call to IRegisteredObject.Stop method, such as
+                // OWIN's "onAppDisposing" event.
+                SendStop();
+            }
+            catch (ObjectDisposedException)
+            {
+                // There's a benign race condition, when SendStop is called after
+                // processing server was already disposed.
+            }
         }
 
         private static IBackgroundProcessDispatcherBuilder[] GetProcesses([NotNull] IEnumerable<IBackgroundProcess> processes)

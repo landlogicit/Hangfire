@@ -1,5 +1,4 @@
-﻿// This file is part of Hangfire.
-// Copyright © 2013-2014 Sergey Odinokov.
+﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -28,9 +27,14 @@ namespace Hangfire.Dashboard
         private int _endPageIndex = 1;
 
         public Pager(int from, int perPage, long total)
+            : this(from, perPage, DefaultRecordsPerPage, total)
+        {
+        }
+
+        public Pager(int from, int perPage, int defaultPerPage, long total)
         {
             FromRecord = from >= 0 ? from : 0;
-            RecordsPerPage = perPage > 0 ? perPage : DefaultRecordsPerPage;
+            RecordsPerPage = perPage > 0 ? perPage : defaultPerPage;
             TotalRecordCount = total;
             CurrentPage = FromRecord / RecordsPerPage + 1;
             TotalPageCount = (int)Math.Ceiling((double)TotalRecordCount / RecordsPerPage);
@@ -49,7 +53,7 @@ namespace Hangfire.Dashboard
 
         internal ICollection<Item> PagerItems { get; }
 
-        public string PageUrl(int page)
+        public virtual string PageUrl(int page)
         {
             if (page < 1 || page > TotalPageCount) return "#";
 

@@ -1,5 +1,4 @@
-﻿// This file is part of Hangfire.
-// Copyright © 2013-2014 Sergey Odinokov.
+﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -34,5 +33,6 @@ namespace Hangfire.Storage
         public bool Removed { get; set; }
         public string TimeZoneId { get; set; }
         public string Error { get; set; }
+        public int RetryAttempt { get; set; }
     }
 }

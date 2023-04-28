@@ -1,5 +1,4 @@
-﻿// This file is part of Hangfire.
-// Copyright © 2013-2014 Sergey Odinokov.
+﻿// This file is part of Hangfire. Copyright © 2013-2014 Hangfire OÜ.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as 
@@ -16,7 +15,7 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Threading;
+using System.Collections.Generic;
 using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Logging;
@@ -73,6 +72,7 @@ namespace Hangfire.Server
         public static readonly TimeSpan DefaultPollingDelay = TimeSpan.FromSeconds(15);
         private static readonly TimeSpan DefaultLockTimeout = TimeSpan.FromMinutes(1);
         private static readonly int BatchSize = 1000;
+        private static readonly int MaxStateChangeAttempts = 5;
 
         private readonly ILog _logger = LogProvider.For<DelayedJobScheduler>();
         private readonly ConcurrentDictionary<Type, bool> _isBatchingAvailableCache = new ConcurrentDictionary<Type, bool>();
@@ -123,22 +123,17 @@ namespace Hangfire.Server
         {
             if (context == null) throw new ArgumentNullException(nameof(context));
 
-            var jobsEnqueued = 0;
+            int jobsProcessed;
 
-            while (EnqueueNextScheduledJobs(context))
+            do
             {
-                jobsEnqueued++;
+                jobsProcessed = EnqueueNextScheduledJobs(context);
 
-                if (context.IsStopping)
+                if (jobsProcessed != 0)
                 {
-                    break;
+                    _logger.Debug($"{jobsProcessed} scheduled job(s) processed by scheduler.");
                 }
-            }
-
-            if (jobsEnqueued != 0)
-            {
-                _logger.Debug($"{jobsEnqueued} scheduled job(s) enqueued.");
-            }
+            } while (jobsProcessed > 0 && !context.IsStopping);
 
             context.Wait(_pollingDelay);
         }
@@ -149,68 +144,172 @@ namespace Hangfire.Server
             return GetType().Name;
         }
 
-        private bool EnqueueNextScheduledJobs(BackgroundProcessContext context)
+        private int EnqueueNextScheduledJobs(BackgroundProcessContext context)
         {
             return UseConnectionDistributedLock(context.Storage, connection =>
             {
-                if (IsBatchingAvailable(connection))
+                var jobsProcessed = 0;
+
+                var now = !context.Storage.HasFeature(JobStorageFeatures.Connection.GetUtcDateTime)
+                    ? DateTime.UtcNow
+                    : ((JobStorageConnection)connection).GetUtcDateTime();
+
+                if (IsBatchingAvailable(context.Storage, connection))
                 {
-                    var timestamp = JobHelper.ToTimestamp(DateTime.UtcNow);
-                    var jobIds = ((JobStorageConnection)connection).GetFirstByLowestScoreFromSet("schedule", 0, timestamp, BatchSize);
+                    var timestamp = JobHelper.ToTimestamp(now);
+                    var entries = ((JobStorageConnection)connection).GetFirstByLowestScoreFromSet("schedule", 0, timestamp, BatchSize);
+                    var toBeEnqueued = new List<Tuple<string, int>>();
 
-                    if (jobIds == null || jobIds.Count == 0) return false;
-
-                    foreach (var jobId in jobIds)
+                    if (entries != null)
                     {
-                        if (context.IsStopping) return false;
-                        EnqueueBackgroundJob(context, connection, jobId);
+                        foreach (var entry in entries)
+                        {
+                            if (context.IsStopping) break;
+
+                            var colonIndex = entry.IndexOf(':');
+
+                            if (colonIndex < 0) EnqueueBackgroundJob(context, connection, entry);
+                            else toBeEnqueued.Add(Tuple.Create(entry, colonIndex));
+
+                            jobsProcessed++;
+                        }
+
+                        if (toBeEnqueued.Count > 0)
+                        {
+                            using (var transaction = connection.CreateWriteTransaction())
+                            {
+                                foreach (var tuple in toBeEnqueued)
+                                {
+                                    EnqueueEntry(tuple.Item1, tuple.Item2, transaction);
+                                }
+
+                                transaction.Commit();
+                            }
+                        }
                     }
                 }
                 else
                 {
                     for (var i = 0; i < BatchSize; i++)
                     {
-                        if (context.IsStopping) return false;
+                        if (context.IsStopping) break;
 
-                        var timestamp = JobHelper.ToTimestamp(DateTime.UtcNow);
+                        var timestamp = JobHelper.ToTimestamp(now);
 
-                        var jobId = connection.GetFirstByLowestScoreFromSet("schedule", 0, timestamp);
-                        if (jobId == null) return false;
+                        var entry = connection.GetFirstByLowestScoreFromSet("schedule", 0, timestamp);
+                        if (entry == null) break;
 
-                        EnqueueBackgroundJob(context, connection, jobId);
+                        var colonIndex = entry.IndexOf(':');
+
+                        if (colonIndex < 0)
+                        {
+                            EnqueueBackgroundJob(context, connection, entry);
+                        }
+                        else
+                        {
+                            using (var transaction = connection.CreateWriteTransaction())
+                            {
+                                EnqueueEntry(entry, colonIndex, transaction);
+                                transaction.Commit();
+                            }
+                        }
+
+                        jobsProcessed++;
                     }
                 }
 
-                return true;
+                return jobsProcessed;
             });
+        }
+
+        private static void EnqueueEntry(string entry, int colonIndex, IWriteOnlyTransaction transaction)
+        {
+            if (colonIndex < 0) throw new ArgumentOutOfRangeException(nameof(colonIndex));
+
+            var queue = entry.Substring(0, colonIndex);
+            var jobId = entry.Substring(colonIndex + 1);
+
+            transaction.RemoveFromSet("schedule", entry);
+            transaction.AddToQueue(queue, jobId);
         }
 
         private void EnqueueBackgroundJob(BackgroundProcessContext context, IStorageConnection connection, string jobId)
         {
-            var appliedState = _stateChanger.ChangeState(new StateChangeContext(
+            Exception exception = null;
+
+            for (var retryAttempt = 0; retryAttempt < MaxStateChangeAttempts; retryAttempt++)
+            {
+                try
+                {
+                    var appliedState = _stateChanger.ChangeState(new StateChangeContext(
+                        context.Storage,
+                        connection,
+                        jobId,
+                        new EnqueuedState { Reason = $"Triggered by {ToString()}" },
+                        new [] { ScheduledState.StateName },
+                        disableFilters: false,
+                        context.StoppingToken,
+                        _profiler,
+                        context.ServerId));
+
+                    if (appliedState == null && connection.GetJobData(jobId) == null)
+                    {
+                        // When a background job with the given id does not exist, we should
+                        // remove its id from a schedule manually. This may happen when someone
+                        // modifies a storage bypassing Hangfire API.
+                        using (var transaction = connection.CreateWriteTransaction())
+                        {
+                            transaction.RemoveFromSet("schedule", jobId);
+                            transaction.Commit();
+                        }
+                    }
+
+                    return;
+                }
+                catch (Exception ex) when (ex.IsCatchableExceptionType())
+                {
+                    _logger.DebugException(
+                        $"State change attempt {retryAttempt + 1} of {MaxStateChangeAttempts} failed due to an error, see inner exception for details", 
+                        ex);
+                    
+                    exception = ex;
+                }
+
+                context.Wait(TimeSpan.FromSeconds(retryAttempt));
+            }
+
+            _logger.ErrorException(
+                $"{MaxStateChangeAttempts} state change attempt(s) failed due to an exception, moving job to the FailedState",
+                exception);
+            
+            // When exception occurs, it's essential to remove a background job identifier from the schedule,
+            // because otherwise delayed job scheduler will fetch such a failing job identifier again and again
+            // and will be unable to make any progress. Any successful state change will cause that identifier
+            // to be removed from the schedule.
+            _stateChanger.ChangeState(new StateChangeContext(
                 context.Storage,
                 connection,
                 jobId,
-                new EnqueuedState { Reason = $"Triggered by {ToString()}" },
-                new [] { ScheduledState.StateName },
-                CancellationToken.None,
-                _profiler));
-
-            if (appliedState == null)
-            {
-                // When a background job with the given id does not exist, we should
-                // remove its id from a schedule manually. This may happen when someone
-                // modifies a storage bypassing Hangfire API.
-                using (var transaction = connection.CreateWriteTransaction())
+                new FailedState(exception, context.ServerId)
                 {
-                    transaction.RemoveFromSet("schedule", jobId);
-                    transaction.Commit();
-                }
-            }
+                    Reason = $"Failed to change state to the '{EnqueuedState.StateName}' one due to an exception after {MaxStateChangeAttempts} retry attempts"
+                },
+                new[] { ScheduledState.StateName },
+                disableFilters: true,
+                context.StoppingToken,
+                _profiler,
+                context.ServerId));
         }
 
-        private bool IsBatchingAvailable(IStorageConnection connection)
+        // TODO Use new HasFeature method if available to avoid exceptions
+        private bool IsBatchingAvailable(JobStorage storage, IStorageConnection connection)
         {
+            if (storage.HasFeature(JobStorageFeatures.Connection.BatchedGetFirstByLowest) ||
+                storage.HasFeature("BatchedGetFirstByLowestScoreFromSet")) // FROM RCs
+            {
+                return true;
+            }
+
             return _isBatchingAvailableCache.GetOrAdd(
                 connection.GetType(),
                 type =>
@@ -225,7 +324,7 @@ namespace Hangfire.Server
                         {
                             return true;
                         }
-                        catch (Exception)
+                        catch (Exception ex) when (ex.IsCatchableExceptionType())
                         {
                             //
                         }
