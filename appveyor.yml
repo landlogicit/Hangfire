@@ -7,7 +7,7 @@
 #   - Section names should be unique on each level.
 
 # Please don't edit it manually, use the `build.bat version` command instead.
-version: 1.8.0-build-0{build}
+version: 1.8.1-build-0{build}
 
 image:
   - Visual Studio 2022
@@ -67,14 +67,7 @@ deploy:
   - provider: NuGet
     skip_symbols: true
     api_key: 
-      secure: eMfWWcK9kTh3ADgxKEMIfF45qhJ1mcbHA8D/CghrGyxtPl92IoFGWrwxdiawEl/A
+      secure: GdfWH5BGrFoHBIuQPebg1ci3odJAeUUOZ2KFJR7y0mBU+kwicu/lNow1vRRjLBU3
     on:
       appveyor_repo_tag: true
 
-notifications:
-  - provider: Slack
-    incoming_webhook:
-      secure: bqJhjmwwsSMJ/8imZJBOOtwbsNF51p24M8HZlIx1+asIHHUhXWHrP9vkuOPK3OnqNopmloLOOBoaEpYAkClkDuEC61a5Go5NY9KSSB9UMjk=
-    on_build_success: false
-    on_build_failure: true
-    on_build_status_changed: true
