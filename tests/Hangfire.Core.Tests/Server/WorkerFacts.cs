@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using Hangfire.Common;
@@ -224,7 +225,9 @@ namespace Hangfire.Core.Tests.Server
 
             worker.Execute(_context.Object);
 
-            _performer.Verify(x => x.Perform(It.IsNotNull<PerformContext>()));
+            _performer.Verify(x => x.Perform(It.Is<PerformContext>(ctx =>
+                ctx.BackgroundJob.Id == JobId &&
+                ctx.ServerId == _context.ServerId)));
         }
 
         [Fact]
@@ -395,6 +398,8 @@ namespace Hangfire.Core.Tests.Server
             return new Worker(_queues, _performer.Object, _stateChanger.Object, TimeSpan.FromSeconds(5), maxStateChangeAttempts);
         }
 
+        [SuppressMessage("Usage", "xUnit1013:Public method should be marked as test")]
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
         public static void Method() { }
     }
 }

@@ -24,6 +24,7 @@
 // SOFTWARE.
 //===============================================================================
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading;
 using Hangfire.Logging.LogProviders;
@@ -840,8 +841,8 @@ namespace Hangfire.Logging.LogProviders
 
         static EntLibLogProvider()
         {
-            LogEntryType = Type.GetType(string.Format(TypeTemplate, "LogEntry"));
-            LoggerType = Type.GetType(string.Format(TypeTemplate, "Logger"));
+            LogEntryType = Type.GetType(string.Format(CultureInfo.InvariantCulture, TypeTemplate, "LogEntry"));
+            LoggerType = Type.GetType(string.Format(CultureInfo.InvariantCulture, TypeTemplate, "Logger"));
         }
 
         public EntLibLogProvider()
@@ -1083,7 +1084,13 @@ namespace Hangfire.Logging.LogProviders
                 // (logger, level, message) => { ((SeriLog.ILoggerILogger)logger).Write(level, message, new object[]); }
                 MethodInfo writeMethodInfo = loggerType.GetRuntimeMethod("Write", new[] { logEventTypeType, typeof(string), typeof(object[]) });
                 ParameterExpression messageParam = Expression.Parameter(typeof(string));
-                ConstantExpression propertyValuesParam = Expression.Constant(new object[0]);
+                ConstantExpression propertyValuesParam = Expression.Constant(
+#if NET451
+                    new object[0]
+#else
+                    Array.Empty<object>()
+#endif
+                );
                 MethodCallExpression writeMethodExp = Expression.Call(instanceCast, writeMethodInfo, levelCast, messageParam, propertyValuesParam);
                 Write = Expression.Lambda<Action<object, object, string>>(writeMethodExp, new[]
                 {
@@ -1322,13 +1329,13 @@ namespace Hangfire.Logging.LogProviders
                     return true;
                 }
 
-                _logWriteDelegate((int)ToLogMessageSeverity(logLevel), LogSystem, _skipLevel, exception, true, 0, null,
+                _logWriteDelegate((int)LoupeLogger.ToLogMessageSeverity(logLevel), LogSystem, _skipLevel, exception, true, 0, null,
                     _category, null, messageFunc.Invoke());
 
                 return true;
             }
 
-            public TraceEventType ToLogMessageSeverity(LogLevel logLevel)
+            private static TraceEventType ToLogMessageSeverity(LogLevel logLevel)
             {
                 switch (logLevel)
                 {
@@ -1409,6 +1416,7 @@ namespace Hangfire.Logging.LogProviders
         /// <param name="message">The Log Message</param>
         /// <param name="e">The Exception, if there is one</param>
         /// <returns>A formatted Log Message string.</returns>
+        [SuppressMessage("Naming", "CA1711:Identifiers should not have incorrect suffix", Justification = "Public API, can not change in minor versions.")]
         public delegate string MessageFormatterDelegate(
             string loggerName,
             LogLevel level,
@@ -1425,10 +1433,16 @@ namespace Hangfire.Logging.LogProviders
 
             stringBuilder.Append(DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss", CultureInfo.InvariantCulture));
 
-            stringBuilder.Append(" ");
+            stringBuilder.Append(' ');
 
             // Append a readable representation of the log level
-            stringBuilder.Append(("[" + level.ToString().ToUpper() + "]").PadRight(8));
+#pragma warning disable CA1311
+            stringBuilder.Append(("[" + level.ToString().ToUpper(
+#if !NETSTANDARD1_3
+                CultureInfo.InvariantCulture
+#endif
+                ) + "]").PadRight(8));
+#pragma warning restore CA1311
 
             stringBuilder.Append("(" + loggerName + ") ");
 

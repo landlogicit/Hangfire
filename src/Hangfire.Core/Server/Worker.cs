@@ -206,7 +206,10 @@ namespace Hangfire.Server
 
             abortToken.ThrowIfCancellationRequested();
 
-            for (var retryAttempt = 0; retryAttempt < _maxStateChangeAttempts; retryAttempt++)
+            // At least one retry attempt should always be performed.
+            var maxRetryAttempts = _maxStateChangeAttempts > 0 ? _maxStateChangeAttempts : 1;
+
+            for (var retryAttempt = 0; retryAttempt < maxRetryAttempts; retryAttempt++)
             {
                 try
                 {
@@ -304,7 +307,7 @@ namespace Hangfire.Server
 
                 using (var jobToken = new ServerJobCancellationToken(connection, backgroundJob.Id, context.ServerId, context.ExecutionId.ToString(), context.StoppedToken))
                 {
-                    var performContext = new PerformContext(context.Storage, connection, backgroundJob, jobToken, _profiler);
+                    var performContext = new PerformContext(context.Storage, connection, backgroundJob, jobToken, _profiler, context.ServerId);
 
                     var latency = (DateTime.UtcNow - backgroundJob.CreatedAt).TotalMilliseconds;
                     var duration = Stopwatch.StartNew();

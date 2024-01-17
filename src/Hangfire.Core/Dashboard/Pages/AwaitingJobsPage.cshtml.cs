@@ -153,12 +153,13 @@ WriteLiteral("\r\n<div class=\"row\">\r\n    <div class=\"col-md-3\">\r\n       
             
             #line default
             #line hidden
-WriteLiteral("\r\n    </div>\r\n    <div class=\"col-md-9\">\r\n        <h1 class=\"page-header\">");
+WriteLiteral("\r\n    </div>\r\n    <div class=\"col-md-9\">\r\n        <h1 id=\"page-title\" class=\"page" +
+"-header\">");
 
 
             
             #line 59 "..\..\Dashboard\Pages\AwaitingJobsPage.cshtml"
-                           Write(Strings.AwaitingJobsPage_Title);
+                                           Write(Strings.AwaitingJobsPage_Title);
 
             
             #line default
@@ -332,8 +333,8 @@ WriteLiteral("                    ");
             #line default
             #line hidden
 WriteLiteral("\r\n                </div>\r\n\r\n                <div class=\"table-responsive\">\r\n     " +
-"               <table class=\"table table-hover\">\r\n                        <thead" +
-">\r\n                            <tr>\r\n");
+"               <table class=\"table table-hover\" aria-describedby=\"page-title\">\r\n" +
+"                        <thead>\r\n                            <tr>\r\n");
 
 
             
@@ -439,7 +440,7 @@ WriteLiteral("</th>\r\n                            </tr>\r\n                    
                                     {
                                         var jobData = connection.GetJobData(jobId);
                                         var state = connection.GetStateData(jobId);
-                                        inAwaitingState = AwaitingState.StateName.Equals(state.Name);
+                                        inAwaitingState = AwaitingState.StateName.Equals(state?.Name);
 
                                         if (state != null && inAwaitingState)
                                         {
@@ -448,7 +449,7 @@ WriteLiteral("</th>\r\n                            </tr>\r\n                    
                                         }
 
                                         job = jobData.Job;
-                                        stateData = state.Data;
+                                        stateData = state?.Data;
                                         awaitingSince = jobData.CreatedAt;
                                     }
                                 }
@@ -493,7 +494,7 @@ WriteLiteral("                                        <td>\r\n");
 
             
             #line 157 "..\..\Dashboard\Pages\AwaitingJobsPage.cshtml"
-                                             if (job == null || inAwaitingState)
+                                             if (job != null && inAwaitingState)
                                             {
 
             
@@ -583,7 +584,7 @@ WriteLiteral("                                    </td>\r\n");
             
             #line default
             #line hidden
-WriteLiteral("                                        <td colspan=\"2\"><em>");
+WriteLiteral("                                        <td colspan=\"4\"><em>");
 
 
             

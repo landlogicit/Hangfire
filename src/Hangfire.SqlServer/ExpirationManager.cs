@@ -72,21 +72,35 @@ namespace Hangfire.SqlServer
 
             foreach (var table in ProcessedTables)
             {
-                CleanupTable(GetExpireQuery(_storage.SchemaName, table), table, numberOfRecordsInSinglePass, cancellationToken);
+                try
+                {
+                    CleanupTable(GetExpireQuery(_storage.SchemaName, table), table, numberOfRecordsInSinglePass, cancellationToken);
+                }
+                catch (DbException ex)
+                {
+                    _logger.ErrorException($"Error occurred while cleaning up the '{table}' table: {ex.Message}", ex);
+                }
             }
 
             if (_stateExpirationTimeout > TimeSpan.Zero)
             {
-                CleanupTable(GetStateCleanupQuery(_storage.SchemaName), "State", numberOfRecordsInSinglePass,
-                    cancellationToken,
-                    command =>
-                    {
-                        var expireMinParameter = command.CreateParameter();
-                        expireMinParameter.ParameterName = "@expireMin";
-                        expireMinParameter.Value = (long)_stateExpirationTimeout.Negate().TotalMinutes;
+                try
+                {
+                    CleanupTable(GetStateCleanupQuery(_storage.SchemaName), "State", numberOfRecordsInSinglePass,
+                        cancellationToken,
+                        command =>
+                        {
+                            var expireMinParameter = command.CreateParameter();
+                            expireMinParameter.ParameterName = "@expireMin";
+                            expireMinParameter.Value = (long)_stateExpirationTimeout.Negate().TotalMinutes;
 
-                        command.Parameters.Add(expireMinParameter);
-                    });
+                            command.Parameters.Add(expireMinParameter);
+                        });
+                }
+                catch (DbException ex)
+                {
+                    _logger.ErrorException($"Error occurred while cleaning up the 'State' table: {ex.Message}", ex);
+                }
             }
 
             cancellationToken.Wait(_checkInterval);
@@ -111,8 +125,8 @@ namespace Hangfire.SqlServer
                         connection,
                         query,
                         numberOfRecordsInSinglePass,
-                        cancellationToken,
-                        additionalActions);
+                        additionalActions,
+                        cancellationToken);
                 } while (affected == numberOfRecordsInSinglePass);
             });
 
@@ -151,6 +165,20 @@ It will be retried in {_checkInterval.TotalSeconds} seconds.",
 
         private static string GetExpireQuery(string schemaName, string table)
         {
+            if (table.Equals("AggregatedCounter", StringComparison.OrdinalIgnoreCase))
+            {
+                // Schema 5, which still should be supported by Hangfire doesn't have an index that covers
+                // the `ExpireAt` column, making it impossible to run the query.
+                return $@"
+set deadlock_priority low;
+set transaction isolation level read committed;
+set xact_abort on;
+set lock_timeout 1000;
+delete top (@count) T from [{schemaName}].[{table}] T
+where ExpireAt < @now
+option (loop join, optimize for (@count = 20000));";
+            }
+
             return $@"
 set deadlock_priority low;
 set transaction isolation level read committed;
@@ -184,8 +212,8 @@ delete top(@count) from cte option (maxdop 1);";
             DbConnection connection,
             string commandText,
             int numberOfRecordsInSinglePass,
-            CancellationToken cancellationToken,
-            Action<DbCommand> additionalActions)
+            Action<DbCommand> additionalActions,
+            CancellationToken cancellationToken)
         {
             using (var command = connection.CreateCommand())
             {

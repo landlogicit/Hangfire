@@ -16,6 +16,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Reflection;
@@ -40,9 +41,9 @@ namespace Hangfire.Dashboard
             var builder = new StringBuilder();
 
             builder.Append(WrapKeyword("using"));
-            builder.Append(" ");
+            builder.Append(' ');
             builder.Append(Encode(job.Type.Namespace));
-            builder.Append(";");
+            builder.Append(';');
             builder.AppendLine();
             builder.AppendLine();
 
@@ -57,7 +58,11 @@ namespace Hangfire.Dashboard
                     serviceName = serviceName.Substring(1);
                 }
 
-                serviceName = Char.ToLower(serviceName[0]) + serviceName.Substring(1);
+                serviceName = Char.ToLower(serviceName[0]
+#if !NETSTANDARD1_3
+                    , CultureInfo.InvariantCulture
+#endif
+                    ) + serviceName.Substring(1);
 
                 builder.Append(WrapKeyword("var"));
                 builder.Append(
@@ -74,7 +79,7 @@ namespace Hangfire.Dashboard
 
             builder.Append(!job.Method.IsStatic ? Encode(serviceName) : WrapType(Encode(job.Type.ToGenericTypeString())));
 
-            builder.Append(".");
+            builder.Append('.');
             builder.Append(Encode(job.Method.Name));
 
             if (job.Method.IsGenericMethod)
@@ -86,7 +91,7 @@ namespace Hangfire.Dashboard
                 builder.Append($"&lt;{String.Join(", ", genericArgumentTypes)}&gt;");
             }
 
-            builder.Append("(");
+            builder.Append('(');
 
             var parameters = job.Method.GetParameters();
             var renderedArguments = new List<string>(parameters.Length);
@@ -149,6 +154,7 @@ namespace Hangfire.Dashboard
 
                         // ReSharper disable once UseStringInterpolation
                         renderedArgument = String.Format(
+                            CultureInfo.CurrentCulture,
                             "{0}{1} {{ {2} }}",
                             WrapKeyword("new"),
                             parameter.ParameterType.IsArray ? " []" : "",
@@ -180,7 +186,7 @@ namespace Hangfire.Dashboard
                 }
                 else if (i > 0)
                 {
-                    builder.Append(" ");
+                    builder.Append(' ');
                 }
 
                 builder.Append($"<span title=\"{parameter.Name}\" data-placement=\"{tooltipPosition}\">");
@@ -189,7 +195,7 @@ namespace Hangfire.Dashboard
 
                 if (i < renderedArguments.Count - 1)
                 {
-                    builder.Append(",");
+                    builder.Append(',');
                 }
             }
 
@@ -273,9 +279,9 @@ namespace Hangfire.Dashboard
                         isJson ? "FromJson" : "Deserialize"));
 
                     builder.Append("&lt;")
-                        .Append(WrapType(Encode(_deserializationType.Name)))
+                        .Append(WrapType(Encode(_deserializationType.ToGenericTypeString())))
                         .Append(WrapIdentifier("&gt;"))
-                        .Append("(");
+                        .Append('(');
 
                     builder.Append(WrapString(Encode("\"" + rawValue.Replace("\"", "\\\"") + "\"")));
                 }
@@ -296,7 +302,7 @@ namespace Hangfire.Dashboard
 
                 if (_deserializationType != null)
                 {
-                    builder.Append(")");
+                    builder.Append(')');
                 }
 
                 return builder.ToString();

@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 #if FEATURE_CONFIGURATIONMANAGER
@@ -37,6 +38,9 @@ namespace Hangfire.SqlServer
 {
     public class SqlServerStorage : JobStorage
     {
+        private static readonly char[] SemicolonSeparator = new[] { ';' };
+        private static readonly char[] EqualSignSeparator = new[] { '=' };
+
         private readonly DbConnection _existingConnection;
         private readonly Func<DbConnection> _connectionFactory;
         private readonly SqlServerStorageOptions _options;
@@ -196,29 +200,30 @@ namespace Hangfire.SqlServer
                     return "SQL Server (custom)";
                 }
 
-                var parts = _connectionString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(x => x.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries))
+                var parts = _connectionString.Split(SemicolonSeparator, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Split(EqualSignSeparator, StringSplitOptions.RemoveEmptyEntries))
                     .Select(x => new { Key = x[0].Trim(), Value = x[1].Trim() })
-                    .ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
+                    .GroupBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(x => x.Key, x => x.Last().Value, StringComparer.OrdinalIgnoreCase);
 
                 var builder = new StringBuilder();
 
                 foreach (var alias in new[] { "Data Source", "Server", "Address", "Addr", "Network Address" })
                 {
-                    if (parts.ContainsKey(alias))
+                    if (parts.TryGetValue(alias, out var part))
                     {
-                        builder.Append(parts[alias]);
+                        builder.Append(part);
                         break;
                     }
                 }
 
-                if (builder.Length != 0) builder.Append("@");
+                if (builder.Length != 0) builder.Append('@');
 
                 foreach (var alias in new[] { "Database", "Initial Catalog" })
                 {
-                    if (parts.ContainsKey(alias))
+                    if (parts.TryGetValue(alias, out var part))
                     {
-                        builder.Append(parts[alias]);
+                        builder.Append(part);
                         break;
                     }
                 }
@@ -482,7 +487,7 @@ namespace Hangfire.SqlServer
             QueueProviders = new PersistentJobQueueProviderCollection(defaultQueueProvider);
         }
 
-        private string GetConnectionString(string nameOrConnectionString)
+        private static string GetConnectionString(string nameOrConnectionString)
         {
 #if FEATURE_CONFIGURATIONMANAGER
             if (IsConnectionString(nameOrConnectionString))
@@ -503,12 +508,12 @@ namespace Hangfire.SqlServer
         }
 
 #if FEATURE_CONFIGURATIONMANAGER
-        private bool IsConnectionString(string nameOrConnectionString)
+        private static bool IsConnectionString(string nameOrConnectionString)
         {
             return nameOrConnectionString.Contains(";");
         }
 
-        private bool IsConnectionStringInConfiguration(string connectionStringName)
+        private static bool IsConnectionStringInConfiguration(string connectionStringName)
         {
             var connectionStringSetting = ConfigurationManager.ConnectionStrings[connectionStringName];
 
@@ -610,7 +615,7 @@ where type = 0;";
                         .Query<double>(sqlQuery)
                         .Single();
 
-                    return new Metric(value.ToString("F"));
+                    return new Metric(value.ToString("F", CultureInfo.CurrentCulture));
                 });
             });
 
@@ -632,7 +637,7 @@ where type = 1;";
                         .Query<double>(sqlQuery)
                         .Single();
 
-                    return new Metric(value.ToString("F"));
+                    return new Metric(value.ToString("F", CultureInfo.CurrentCulture));
                 });
             });
 
@@ -647,13 +652,21 @@ where type = 1;";
                 return sqlStorage.UseConnection(null, connection =>
                 {
                     var sqlQuery = $@"select top(1) [Version] from [{sqlStorage.SchemaName}].[Schema]";
-                    var value = connection.Query<int>(sqlQuery).Single();
+                    var version = connection.Query<int?>(sqlQuery).SingleOrDefault();
 
-                    return new Metric(value)
+                    if (!version.HasValue)
                     {
-                        Style = value < SqlServerObjectsInstaller.LatestSchemaVersion
+                        return new Metric("Unspecified")
+                        {
+                            Style = MetricStyle.Danger,
+                        };
+                    }
+
+                    return new Metric(version.Value)
+                    {
+                        Style = version < SqlServerObjectsInstaller.LatestSchemaVersion
                             ? MetricStyle.Warning
-                            : value == SqlServerObjectsInstaller.LatestSchemaVersion
+                            : version == SqlServerObjectsInstaller.LatestSchemaVersion
                                 ? MetricStyle.Success
                                 : MetricStyle.Default
                     };

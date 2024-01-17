@@ -51,7 +51,7 @@ namespace Hangfire.Dashboard
             BackgroundStateColors.Add(ProcessingState.StateName, "#FCEFDC");
             BackgroundStateColors.Add(ScheduledState.StateName, "#E0F3F8");
             BackgroundStateColors.Add(DeletedState.StateName, "#ddd");
-            BackgroundStateColors.Add(AwaitingState.StateName, "#F5F5F5");
+            BackgroundStateColors.Add(AwaitingState.StateName, "#E0F3F8");
 
             ForegroundStateColors.Add(EnqueuedState.StateName, "#999");
             ForegroundStateColors.Add(SucceededState.StateName, "#5cb85c");
@@ -59,7 +59,7 @@ namespace Hangfire.Dashboard
             ForegroundStateColors.Add(ProcessingState.StateName, "#f0ad4e");
             ForegroundStateColors.Add(ScheduledState.StateName, "#5bc0de");
             ForegroundStateColors.Add(DeletedState.StateName, "#777");
-            ForegroundStateColors.Add(AwaitingState.StateName, "#999");
+            ForegroundStateColors.Add(AwaitingState.StateName, "#5bc0de");
 
             StateCssSuffixes.Add(EnqueuedState.StateName, "active");
             StateCssSuffixes.Add(SucceededState.StateName, "success");
@@ -67,7 +67,7 @@ namespace Hangfire.Dashboard
             StateCssSuffixes.Add(ProcessingState.StateName, "warning");
             StateCssSuffixes.Add(ScheduledState.StateName, "info");
             StateCssSuffixes.Add(DeletedState.StateName, "inactive");
-            StateCssSuffixes.Add(AwaitingState.StateName, "active");
+            StateCssSuffixes.Add(AwaitingState.StateName, "info");
         }
 
         [Obsolete("Use `AddStateCssSuffix` method's logic instead. Will be removed in 2.0.0.")]
@@ -78,12 +78,12 @@ namespace Hangfire.Dashboard
 
         public static string GetBackgroundStateColor(string stateName)
         {
-            if (stateName == null || !BackgroundStateColors.ContainsKey(stateName))
+            if (stateName == null || !BackgroundStateColors.TryGetValue(stateName, out var color))
             {
                 return "inherit";
             }
 
-            return BackgroundStateColors[stateName];
+            return color;
         }
 
         [Obsolete("Use `AddStateCssSuffix` method's logic instead. Will be removed in 2.0.0.")]
@@ -94,12 +94,12 @@ namespace Hangfire.Dashboard
 
         public static string GetForegroundStateColor(string stateName)
         {
-            if (stateName == null || !ForegroundStateColors.ContainsKey(stateName))
+            if (stateName == null || !ForegroundStateColors.TryGetValue(stateName, out var color))
             {
                 return "inherit";
             }
 
-            return ForegroundStateColors[stateName];
+            return color;
         }
 
         public static void AddStateCssSuffix(string stateName, string color)
@@ -138,8 +138,8 @@ namespace Hangfire.Dashboard
             this HtmlHelper helper,
             string state, IDictionary<string, string> properties)
         {
-            var renderer = Renderers.ContainsKey(state)
-                ? Renderers[state]
+            var renderer = Renderers.TryGetValue(state, out var value)
+                ? value
                 : DefaultRenderer;
 
             return renderer?.Invoke(helper, properties);
@@ -175,25 +175,25 @@ namespace Hangfire.Dashboard
 
             var itemsAdded = false;
 
-            if (stateData.ContainsKey("Latency"))
+            if (stateData.TryGetValue("Latency", out var latencyString))
             {
-                var latency = TimeSpan.FromMilliseconds(long.Parse(stateData["Latency"]));
+                var latency = TimeSpan.FromMilliseconds(long.Parse(latencyString, CultureInfo.InvariantCulture));
 
                 builder.Append($"<dt>Latency:</dt><dd>{html.HtmlEncode(html.ToHumanDuration(latency, false))}</dd>");
 
                 itemsAdded = true;
             }
 
-            if (stateData.ContainsKey("PerformanceDuration"))
+            if (stateData.TryGetValue("PerformanceDuration", out var durationString))
             {
-                var duration = TimeSpan.FromMilliseconds(long.Parse(stateData["PerformanceDuration"]));
+                var duration = TimeSpan.FromMilliseconds(long.Parse(durationString, CultureInfo.InvariantCulture));
                 builder.Append($"<dt>Duration:</dt><dd>{html.HtmlEncode(html.ToHumanDuration(duration, false))}</dd>");
 
                 itemsAdded = true;
             }
 
 
-            if (stateData.ContainsKey("Result") && !String.IsNullOrWhiteSpace(stateData["Result"]))
+            if (stateData.TryGetValue("Result", out var resultString) && !String.IsNullOrWhiteSpace(resultString))
             {
                 var result = stateData["Result"];
                 builder.Append($"<dt>Result:</dt><dd>{html.HtmlEncode(result)}</dd>");
@@ -230,15 +230,9 @@ namespace Hangfire.Dashboard
             var builder = new StringBuilder();
             builder.Append("<dl class=\"dl-horizontal\">");
 
-            string serverId = null;
-
-            if (stateData.ContainsKey("ServerId"))
+            if (!stateData.TryGetValue("ServerId", out var serverId))
             {
-                serverId = stateData["ServerId"];
-            }
-            else if (stateData.ContainsKey("ServerName"))
-            {
-                serverId = stateData["ServerName"];
+                stateData.TryGetValue("ServerName", out serverId);
             }
 
             if (serverId != null)
@@ -247,15 +241,15 @@ namespace Hangfire.Dashboard
                 builder.Append($"<dd>{helper.ServerId(serverId)}</dd>");
             }
 
-            if (stateData.ContainsKey("WorkerId"))
+            if (stateData.TryGetValue("WorkerId", out var workerId))
             {
                 builder.Append("<dt>Worker:</dt>");
-                builder.Append($"<dd>{helper.HtmlEncode(stateData["WorkerId"].Substring(0, 8))}</dd>");
+                builder.Append($"<dd>{helper.HtmlEncode(workerId.Substring(0, 8))}</dd>");
             }
-            else if (stateData.ContainsKey("WorkerNumber"))
+            else if (stateData.TryGetValue("WorkerNumber", out var workerNumber))
             {
                 builder.Append("<dt>Worker:</dt>");
-                builder.Append($"<dd>#{helper.HtmlEncode(stateData["WorkerNumber"])}</dd>");
+                builder.Append($"<dd>#{helper.HtmlEncode(workerNumber)}</dd>");
             }
 
             builder.Append("</dl>");
@@ -281,7 +275,7 @@ namespace Hangfire.Dashboard
 
             var sb = new StringBuilder();
             sb.Append("<dl class=\"dl-horizontal\">");
-            sb.Append($"<dt>Enqueue at:</dt><dd data-moment=\"{helper.HtmlEncode(JobHelper.ToTimestamp(enqueueAt).ToString(CultureInfo.InvariantCulture))}\">{helper.HtmlEncode(enqueueAt.ToString(CultureInfo.CurrentUICulture))}</dd>");
+            sb.Append($"<dt>Enqueue at:</dt><dd data-moment=\"{helper.HtmlEncode(JobHelper.ToTimestamp(enqueueAt).ToString(CultureInfo.InvariantCulture))}\">{helper.HtmlEncode(enqueueAt.ToString(CultureInfo.CurrentCulture))}</dd>");
 
             if (!String.IsNullOrWhiteSpace(queue))
             {
@@ -299,21 +293,20 @@ namespace Hangfire.Dashboard
 
             builder.Append("<dl class=\"dl-horizontal\">");
 
-            if (stateData.ContainsKey("ParentId"))
+            if (stateData.TryGetValue("ParentId", out var parentId))
             {
-                builder.Append($"<dt>Parent</dt><dd>{helper.JobIdLink(stateData["ParentId"])}</dd>");
+                builder.Append($"<dt>Parent</dt><dd>{helper.JobIdLink(parentId)}</dd>");
             }
 
-            if (stateData.ContainsKey("NextState"))
+            if (stateData.TryGetValue("NextState", out var nextStateString))
             {
-                var nextState = SerializationHelper.Deserialize<IState>(stateData["NextState"], SerializationOption.TypedInternal);
+                var nextState = SerializationHelper.Deserialize<IState>(nextStateString, SerializationOption.TypedInternal);
 
                 builder.Append($"<dt>Next State</dt><dd>{helper.StateLabel(nextState?.Name ?? "(no state)")}</dd>");
             }
 
-            if (stateData.ContainsKey("Options"))
+            if (stateData.TryGetValue("Options", out var optionsDescription))
             {
-                var optionsDescription = stateData["Options"];
                 if (Enum.TryParse(optionsDescription, out JobContinuationOptions options))
                 {
                     optionsDescription = options.ToString("G");

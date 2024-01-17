@@ -2,25 +2,69 @@
 <package>
   <metadata>
     <id>Hangfire.Core</id>
-    <version>0.0.0</version>
+    <version>%version%</version>
     <title>Hangfire Core Components</title>
     <authors>Sergey Odinokov</authors>
     <owners>odinserj</owners>
     <projectUrl>https://www.hangfire.io/</projectUrl>
-    <repository type="git" url="https://github.com/HangfireIO/Hangfire.git" />
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <licenseUrl>https://raw.github.com/HangfireIO/Hangfire/master/LICENSE.md</licenseUrl>
+    <repository type="git" url="https://github.com/HangfireIO/Hangfire.git" commit="%commit%" />
+    <license type="file">LICENSE.md</license>
     <summary>An easy way to perform fire-and-forget, delayed and recurring tasks inside ASP.NET applications. No Windows Service required.</summary>
     <description>
 An easy and reliable way to perform fire-and-forget, delayed and recurring, long-running, short-running, CPU or I/O intensive tasks inside ASP.NET applications. No Windows Service / Task Scheduler required. Even ASP.NET is not required.
 Backed by Redis, SQL Server, SQL Azure or MSMQ. This is a .NET alternative to Sidekiq, Resque and Celery.
 https://www.hangfire.io/
     </description>
-    <copyright>Copyright © 2013-2023 Hangfire OÜ</copyright>
+    <copyright>Copyright © 2013-2024 Hangfire OÜ</copyright>
     <tags>Hangfire OWIN Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
     <releaseNotes>
 Release notes are available in our blog https://www.hangfire.io/blog/
 Please see https://docs.hangfire.io/en/latest/upgrade-guides/upgrading-to-hangfire-1.8.html to learn how to upgrade.
+
+1.8.7
+• Added – Allow using macro expressions like `@hourly` for recurring jobs (by @MuhamedAbdalla).
+• Added – Show storage time in page footer when supported by storage implementation.
+• Added – Show duration and latency columns separately on the Succeeded Jobs page when supported.
+• Added – Show the exception column on the Deleted Jobs page when available and supported by storage.
+• Changed – Reduce package size by stripping unnecessary locales in Moment.js.
+• Changed – Bump Microsoft.Owin package to version 4.2.2.
+• Changed – Log a warning message when a server listens to unsupported queue names.
+• Changed – Use storage time, if available, to show delay warnings in the Dashboard UI.
+• Fixed – Proper rendering of generic arguments on the Job Details page (by @olivermue).
+• Fixed – Language inconsistency in the Dashboard UI related to date/time description.
+• Fixed – Big stack traces take too long time to be formatted.
+• Fixed – Don't throw `NullReferenceException` from the Scheduled Jobs page when there's a job with missing data.
+• Fixed – Don't throw `NullReferenceException` from the Processing Jobs page when there's a job with missing data.
+• Fixed – CSS for Enqueued and Deleted state cards in dark theme.
+• Fixed – Log errors instead of throwing an exception when a particular table can't be cleaned.
+• Fixed – Avoid logging fatal exceptions when stopping a faulting background process.
+• Fixed – Don't display checkboxes in the Dashboard UI when job details can not be fetched.
+• Fixed – Scrollbars in WebKit-based browsers are now dark in dark mode.
+• Project – Disable tests for `netcoreapp1.0` and `netcoreapp2.1` targets since they aren't supported in AppVeyor.
+• Project – Add a `net6.0` target for unit tests instead of the removed ones.
+• Project – Modernise projects and build environments to use the newest features.
+
+1.8.6
+• Changed – Update jQuery library in Dashboard UI to version 3.7.1.
+• Changed – Mark all types in Hangfire.Annotations with `EditorBrowsableAttribute(Never)`.
+• Changed – Change state card colors for the Awaiting state to match the Scheduled state.
+• Fixed – Exception when deserializing an instance of the `AutomaticRetryAttribute` class from JSON.
+• Fixed – Add serialization-related constructors for all the exception classes.
+• Fixed – Use invariant culture or ordinal comparisons for internal strings.
+• Fixed – Use invariant culture when formatting key names for metrics.
+• Fixed – Use `CurrentCulture` instead of `CurrentUICulture` when displaying time.
+• Project – Enable running static analysis by Coverity Scan weekly.
+• Project – Enable mandatory static analysis by the Microsoft.CodeAnalysis.NetAnalyzers package.
+• Project – Change MSBuild path when building using newer .NET SDKs for Razor views.
+
+1.8.5
+• Added – Possibility to inform a `FaviconPath` on `DashboardOptions` (by @cezar-pimentel).
+• Fixed – Inability to restore a disabled recurring job, regression in version 1.8.3.
+• Fixed – Make it possible to serialize the `AutomaticRetryAttribute` filter to JSON.
+
+1.8.4
+• Added – Pass server id from a worker to the `PerformContext.ServerId` property available in filters.
+• Fixed – Send heartbeats until full background processing server shutdown.
 
 1.8.3
 • Changed – Allow to configure `MaxLinesInStackTrace` for a particular `FailedState` instance.
@@ -146,29 +190,23 @@ Internals
   <files>
     <file src="net451\Hangfire.Core.dll" target="lib\net451" />
     <file src="net451\Hangfire.Core.xml" target="lib\net451" />
-    <file src="net451\Hangfire.Core.pdb" target="lib\net451" />
 
     <file src="net451\**\Hangfire.Core.resources.dll" target="lib\net451" />
 
     <file src="net46\Hangfire.Core.dll" target="lib\net46" />
     <file src="net46\Hangfire.Core.xml" target="lib\net46" />
-    <file src="net46\Hangfire.Core.pdb" target="lib\net46" />
 
     <file src="net46\**\Hangfire.Core.resources.dll" target="lib\net46" />
     
     <file src="netstandard1.3\Hangfire.Core.dll" target="lib\netstandard1.3" />
     <file src="netstandard1.3\Hangfire.Core.xml" target="lib\netstandard1.3" />
-    <file src="netstandard1.3\Hangfire.Core.pdb" target="lib\netstandard1.3" />
 
     <file src="netstandard1.3\**\Hangfire.Core.resources.dll" target="lib\netstandard1.3" />
 
     <file src="netstandard2.0\Hangfire.Core.dll" target="lib\netstandard2.0" />
     <file src="netstandard2.0\Hangfire.Core.xml" target="lib\netstandard2.0" />
-    <file src="netstandard2.0\Hangfire.Core.pdb" target="lib\netstandard2.0" />
 
     <file src="netstandard2.0\**\Hangfire.Core.resources.dll" target="lib\netstandard2.0" />
-    
-    <file src="..\src\Hangfire.Core\**\*.cs;..\src\Hangfire.Core\**\*.cshtml" target="src" exclude="**\obj*\**\*.cs" />
 
     <file src="LICENSE.md" />
     <file src="COPYING" />

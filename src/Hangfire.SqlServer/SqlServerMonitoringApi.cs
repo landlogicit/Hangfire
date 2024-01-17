@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Globalization;
 using System.Linq;
 using Dapper;
 using Hangfire.Annotations;
@@ -89,7 +90,7 @@ namespace Hangfire.SqlServer
                     LoadException = loadException,
                     InvocationData = invocationData,
                     InProcessingState = ProcessingState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
-                    ServerId = stateData.ContainsKey("ServerId") ? stateData["ServerId"] : stateData["ServerName"],
+                    ServerId = stateData.TryGetValue("ServerId", out var serverId) ? serverId : stateData["ServerName"],
                     StartedAt = sqlJob.StateChanged,
                     StateData = stateData
                 }));
@@ -204,8 +205,8 @@ namespace Hangfire.SqlServer
                     InvocationData = invocationData,
                     InSucceededState = SucceededState.StateName.Equals(sqlJob.StateName, StringComparison.OrdinalIgnoreCase),
                     Result = stateData["Result"],
-                    TotalDuration = stateData.ContainsKey("PerformanceDuration") && stateData.ContainsKey("Latency")
-                        ? (long?)long.Parse(stateData["PerformanceDuration"]) + (long?)long.Parse(stateData["Latency"])
+                    TotalDuration = stateData.TryGetValue("PerformanceDuration", out var duration) && stateData.TryGetValue("Latency", out var latency)
+                        ? (long?)long.Parse(duration, CultureInfo.InvariantCulture) + (long?)long.Parse(latency, CultureInfo.InvariantCulture)
                         : null,
                     SucceededAt = sqlJob.StateChanged,
                     StateData = stateData
@@ -251,7 +252,7 @@ namespace Hangfire.SqlServer
 
             var parentIds = awaitingJobs
                 .Where(x => x.Value != null && x.Value.InAwaitingState && x.Value.StateData.ContainsKey("ParentId"))
-                .Select(x => long.Parse(x.Value.StateData["ParentId"]))
+                .Select(x => long.Parse(x.Value.StateData["ParentId"], CultureInfo.InvariantCulture))
                 .ToArray();
 
             var parentStates = UseConnection(connection =>
@@ -265,12 +266,12 @@ namespace Hangfire.SqlServer
 
             foreach (var awaitingJob in awaitingJobs)
             {
-                if (awaitingJob.Value != null && awaitingJob.Value.InAwaitingState && awaitingJob.Value.StateData.ContainsKey("ParentId"))
+                if (awaitingJob.Value != null && awaitingJob.Value.InAwaitingState && awaitingJob.Value.StateData.TryGetValue("ParentId", out var parentIdString))
                 {
-                    var parentId = long.Parse(awaitingJob.Value.StateData["ParentId"]);
-                    if (parentStates.ContainsKey(parentId))
+                    var parentId = long.Parse(parentIdString, CultureInfo.InvariantCulture);
+                    if (parentStates.TryGetValue(parentId, out var parentStateName))
                     {
-                        awaitingJob.Value.ParentStateName = parentStates[parentId];
+                        awaitingJob.Value.ParentStateName = parentStateName;
                     }
                 }
             }
@@ -430,7 +431,7 @@ select * from [{_storage.SchemaName}].State with (nolock, forceseek) where JobId
 
         public override StatisticsDto GetStatistics()
         {
-            string sql = String.Format(@"
+            string sql = String.Format(CultureInfo.InvariantCulture, @"
 set transaction isolation level read committed;
 select count(Id) from [{0}].Job with (nolock, forceseek) where StateName = N'Enqueued';
 select count(Id) from [{0}].Job with (nolock, forceseek) where StateName = N'Failed';
@@ -492,7 +493,7 @@ select count(*) from [{0}].[Set] with (nolock, forceseek) where [Key] = N'retrie
                 endDate = endDate.AddHours(-1);
             }
 
-            var keyMaps = dates.ToDictionary(x => $"stats:{type}:{x.ToString("yyyy-MM-dd-HH")}", x => x);
+            var keyMaps = dates.ToDictionary(x => $"stats:{type}:{x.ToString("yyyy-MM-dd-HH", CultureInfo.InvariantCulture)}", x => x);
 
             return GetTimelineStats(connection, keyMaps);
         }
@@ -507,7 +508,7 @@ select count(*) from [{0}].[Set] with (nolock, forceseek) where [Key] = N'retrie
                 endDate = endDate.AddDays(-1);
             }
 
-            var keyMaps = dates.ToDictionary(x => $"stats:{type}:{x.ToString("yyyy-MM-dd")}", x => x);
+            var keyMaps = dates.ToDictionary(x => $"stats:{type}:{x.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}", x => x);
 
             return GetTimelineStats(connection, keyMaps);
         }
@@ -569,7 +570,7 @@ where j.Id in @jobIds";
                 .ToDictionary(x => x.Id, x => x);
 
             var sortedSqlJobs = jobIds
-                .Select(jobId => jobs.ContainsKey(jobId) ? jobs[jobId] : new SqlJob { Id = jobId })
+                .Select(jobId => jobs.TryGetValue(jobId, out var job) ? job : new SqlJob { Id = jobId })
                 .ToList();
             
             return DeserializeJobs(
@@ -676,7 +677,7 @@ where cte.row_num between @start and @end";
                 }
 
                 result.Add(new KeyValuePair<string, TDto>(
-                    job.Id.ToString(), dto));
+                    job.Id.ToString(CultureInfo.InvariantCulture), dto));
             }
 
             return new JobList<TDto>(result);
@@ -702,7 +703,7 @@ where j.Id in @jobIds";
             foreach (var job in jobs)
             {
                 result.Add(new KeyValuePair<string, FetchedJobDto>(
-                    job.Id.ToString(),
+                    job.Id.ToString(CultureInfo.InvariantCulture),
                     new FetchedJobDto
                     {
                         Job = DeserializeJob(job.InvocationData, job.Arguments, out _, out _),
@@ -726,8 +727,8 @@ where j.Id in @jobIds";
 
             public new TValue this[TKey i]
             {
-                get { return ContainsKey(i) ? base[i] : default(TValue); }
-                set { base[i] = value; }
+                get => TryGetValue(i, out var value) ? value : default(TValue);
+                set => base[i] = value;
             }
         }
 

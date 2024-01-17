@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Dapper;
@@ -51,6 +52,8 @@ namespace Hangfire.SqlServer
                 _dedicatedConnection.Dispose();
                 _dedicatedConnection = null;
             }
+
+            base.Dispose();
         }
 
         public override IWriteOnlyTransaction CreateWriteTransaction()
@@ -173,7 +176,7 @@ commit tran;";
 
                 return _storage.UseConnection(_dedicatedConnection, connection => connection
                     .ExecuteScalar<long>(queryString, queryParameters, commandTimeout: _storage.CommandTimeout)
-                    .ToString());
+                    .ToString(CultureInfo.InvariantCulture));
             }
 
             return _storage.UseTransaction(_dedicatedConnection, (connection, transaction) =>
@@ -182,7 +185,7 @@ commit tran;";
                     queryString,
                     queryParameters,
                     transaction,
-                    commandTimeout: _storage.CommandTimeout).ToString();
+                    commandTimeout: _storage.CommandTimeout).ToString(CultureInfo.InvariantCulture);
 
                 var insertParameterSql =
 $@"insert into [{_storage.SchemaName}].JobParameter (JobId, Name, Value) values (@jobId, @name, @value)";
@@ -195,7 +198,7 @@ $@"insert into [{_storage.SchemaName}].JobParameter (JobId, Name, Value) values 
                     foreach (var parameter in parametersArray)
                     {
                         commandBatch.Append(insertParameterSql,
-                            new SqlCommandBatchParameter("@jobId", DbType.Int64) { Value = long.Parse(jobId) },
+                            new SqlCommandBatchParameter("@jobId", DbType.Int64) { Value = long.Parse(jobId, CultureInfo.InvariantCulture) },
                             new SqlCommandBatchParameter("@name",DbType.String, 40) { Value = parameter.Key },
                             new SqlCommandBatchParameter("@value", DbType.String, -1) { Value = (object)parameter.Value ?? DBNull.Value });
                     }
@@ -331,7 +334,7 @@ end catch";
             {
                 connection.Execute(
                     query,
-                    new { jobId = long.Parse(id), name, value },
+                    new { jobId = long.Parse(id, CultureInfo.InvariantCulture), name, value },
                     commandTimeout: _storage.CommandTimeout);
             });
         }
@@ -721,7 +724,7 @@ order by [Id] desc";
             var lockId = Guid.NewGuid();
             var ownLock = false;
 
-            if (!_lockedResources.ContainsKey(resource))
+            if (!_lockedResources.TryGetValue(resource, out var lockIds))
             {
                 try
                 {
@@ -734,10 +737,10 @@ order by [Id] desc";
                     throw;
                 }
 
-                _lockedResources.Add(resource, new HashSet<Guid>());
+                _lockedResources.Add(resource, lockIds = new HashSet<Guid>());
             }
 
-            _lockedResources[resource].Add(lockId);
+            lockIds.Add(lockId);
             return new DisposableLock(this, resource, lockId, ownLock);
         }
 
@@ -745,12 +748,12 @@ order by [Id] desc";
         {
             try
             {
-                if (_lockedResources.ContainsKey(resource))
+                if (_lockedResources.TryGetValue(resource, out var lockIds))
                 {
-                    if (_lockedResources[resource].Contains(lockId))
+                    if (lockIds.Contains(lockId))
                     {
-                        if (_lockedResources[resource].Remove(lockId) &&
-                            _lockedResources[resource].Count == 0 &&
+                        if (lockIds.Remove(lockId) &&
+                            lockIds.Count == 0 &&
                             _lockedResources.Remove(resource) &&
                             _dedicatedConnection.State == ConnectionState.Open)
                         {

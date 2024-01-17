@@ -122,7 +122,21 @@ namespace Hangfire
                 $"    Listening queues: {String.Join(", ", options.Queues.Select(x => "'" + x + "'"))}\r\n" +
                 $"    Shutdown timeout: {options.ShutdownTimeout}\r\n" +
                 $"    Schedule polling interval: {options.SchedulePollingInterval}");
-            
+
+            var wrongQueues = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var queue in options.Queues)
+            {
+                if (!EnqueuedState.TryValidateQueueName(queue))
+                {
+                    wrongQueues.Add(queue);
+                }
+            }
+
+            if (wrongQueues.Count > 0)
+            {
+                _logger.Warn($"These queues fail to match the naming format: {String.Join(", ", wrongQueues.Select(x => $"'{x}'"))}. A queue name must consist of lowercase letters, digits, underscore, and dash characters only.");
+            }
+
             _processingServer = new BackgroundProcessingServer(
                 storage, 
                 processes, 
@@ -139,6 +153,7 @@ namespace Hangfire
         public void Dispose()
         {
             _processingServer.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         [Obsolete("This method is a stub. There is no need to call the `Start` method. Will be removed in version 2.0.0.")]

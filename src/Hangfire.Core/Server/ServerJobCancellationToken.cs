@@ -20,6 +20,7 @@ using Hangfire.States;
 using Hangfire.Storage;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Hangfire.Server
@@ -79,6 +80,7 @@ namespace Hangfire.Server
             }
         }
 
+        [SuppressMessage("SonarLint", "S4275:GettersAndSettersShouldAccessTheExpectedFields", Justification = "Bad property naming for backwards compatibility.")]
         public CancellationToken ShutdownToken
         {
             get
@@ -198,12 +200,12 @@ namespace Hangfire.Server
                 return true;
             }
 
-            if (!state.Data.ContainsKey("ServerId") || !state.Data["ServerId"].Equals(_serverId, StringComparison.OrdinalIgnoreCase))
+            if (!state.Data.TryGetValue("ServerId", out var serverId) || !serverId.Equals(_serverId, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
-            if (!state.Data.ContainsKey("WorkerId") || !state.Data["WorkerId"].Equals(_workerId, StringComparison.OrdinalIgnoreCase))
+            if (!state.Data.TryGetValue("WorkerId", out var workerId) || !workerId.Equals(_workerId, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }

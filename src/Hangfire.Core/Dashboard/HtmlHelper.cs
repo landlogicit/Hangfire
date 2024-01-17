@@ -20,6 +20,7 @@ using System.Net;
 using System.Text;
 using Hangfire.Common;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -30,6 +31,7 @@ using Hangfire.Dashboard.Resources;
 
 namespace Hangfire.Dashboard
 {
+    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "We use instance methods in this class for better observability.")]
     public class HtmlHelper
     {
         private static readonly Type DisplayNameType;
@@ -159,7 +161,10 @@ namespace Hangfire.Dashboard
                 {
                     try
                     {
-                        return String.Format(GetDisplayName(attribute), job.Args.ToArray());
+                        return String.Format(
+                            CultureInfo.CurrentCulture,
+                            GetDisplayName(attribute),
+                            job.Args.ToArray());
                     }
                     catch (FormatException)
                     {
@@ -225,7 +230,7 @@ namespace Hangfire.Dashboard
 
         public NonEscapedString RelativeTime(DateTime value)
         {
-            return Raw($"<span data-moment=\"{HtmlEncode(JobHelper.ToTimestamp(value).ToString(CultureInfo.InvariantCulture))}\">{HtmlEncode(value.ToString(CultureInfo.CurrentUICulture))}</span>");
+            return Raw($"<span data-moment=\"{HtmlEncode(JobHelper.ToTimestamp(value).ToString(CultureInfo.InvariantCulture))}\">{HtmlEncode(value.ToString(CultureInfo.CurrentCulture))}</span>");
         }
 
         public NonEscapedString MomentTitle(DateTime time, string value)
@@ -235,7 +240,7 @@ namespace Hangfire.Dashboard
 
         public NonEscapedString LocalTime(DateTime value)
         {
-            return Raw($"<span data-moment-local=\"{HtmlEncode(JobHelper.ToTimestamp(value).ToString(CultureInfo.InvariantCulture))}\">{HtmlEncode(value.ToString(CultureInfo.CurrentUICulture))}</span>");
+            return Raw($"<span data-moment-local=\"{HtmlEncode(JobHelper.ToTimestamp(value).ToString(CultureInfo.InvariantCulture))}\">{HtmlEncode(value.ToString(CultureInfo.CurrentCulture))}</span>");
         }
 
         public string ToHumanDuration(TimeSpan? duration, bool displaySign = true)
@@ -272,7 +277,7 @@ namespace Hangfire.Dashboard
                     builder.Append(duration.Value.Seconds);
                     if (duration.Value.Milliseconds > 0)
                     {
-                        builder.Append($".{duration.Value.Milliseconds.ToString().PadLeft(3, '0')}");
+                        builder.Append($".{duration.Value.Milliseconds.ToString(CultureInfo.InvariantCulture).PadLeft(3, '0')}");
                     }
 
                     builder.Append("s ");

@@ -27,6 +27,8 @@ namespace Hangfire.Server
 {
     internal sealed class BackgroundServerProcess : IBackgroundServerProcess
     {
+        private static readonly char[] ColonSeparator = new [] { ':' };
+
         private readonly ILog _logger = LogProvider.GetLogger(typeof(BackgroundServerProcess));
         private readonly JobStorage _storage;
         private readonly BackgroundProcessingServerOptions _options;
@@ -289,14 +291,14 @@ namespace Hangfire.Server
         {
             var serverContext = new ServerContext();
 
-            if (properties.ContainsKey("Queues") && properties["Queues"] is string[] array)
+            if (properties.TryGetValue("Queues", out var queues) && queues is string[] array)
             {
                 serverContext.Queues = array;
             }
 
-            if (properties.ContainsKey("WorkerCount"))
+            if (properties.TryGetValue("WorkerCount", out var workerCount))
             {
-                serverContext.WorkerCount = (int)properties["WorkerCount"];
+                serverContext.WorkerCount = (int)workerCount;
             }
 
             return serverContext;
@@ -308,7 +310,7 @@ namespace Hangfire.Server
 
             try
             {
-                var split = serverId.Split(new [] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+                var split = serverId.Split(ColonSeparator, StringSplitOptions.RemoveEmptyEntries);
                 if (split.Length == 3 && split[2].Length > 8)
                 {
                     name = $"{split[0]}:{split[1]}:{split[2].Substring(0, 8)}";

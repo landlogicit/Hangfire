@@ -14,6 +14,7 @@
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Globalization;
 using System.Linq;
 using Hangfire.Annotations;
 using Hangfire.Common;
@@ -42,23 +43,23 @@ namespace Hangfire
         public string Resource { get; }
         public int TimeoutSec { get; }
 
-        public void OnPerforming(PerformingContext filterContext)
+        public void OnPerforming(PerformingContext context)
         {
-            var resource = GetResource(filterContext.BackgroundJob.Job);
+            var resource = GetResource(context.BackgroundJob.Job);
             var timeout = TimeSpan.FromSeconds(TimeoutSec);
 
-            var distributedLock = filterContext.Connection.AcquireDistributedLock(resource, timeout);
-            filterContext.Items["DistributedLock"] = distributedLock;
+            var distributedLock = context.Connection.AcquireDistributedLock(resource, timeout);
+            context.Items["DistributedLock"] = distributedLock;
         }
 
-        public void OnPerformed(PerformedContext filterContext)
+        public void OnPerformed(PerformedContext context)
         {
-            if (!filterContext.Items.ContainsKey("DistributedLock"))
+            if (!context.Items.TryGetValue("DistributedLock", out var value))
             {
                 throw new InvalidOperationException("Can not release a distributed lock: it was not acquired.");
             }
 
-            var distributedLock = (IDisposable)filterContext.Items["DistributedLock"];
+            var distributedLock = (IDisposable)value;
             distributedLock.Dispose();
         }
 
@@ -68,7 +69,7 @@ namespace Hangfire
             {
                 try
                 {
-                    return String.Format(Resource, job.Args.ToArray()).ToLowerInvariant();
+                    return String.Format(CultureInfo.InvariantCulture, Resource, job.Args.ToArray()).ToLowerInvariant();
                 }
                 catch (Exception ex)
                 {

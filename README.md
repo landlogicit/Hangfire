@@ -1,7 +1,7 @@
 Hangfire 
 =========
 
-[![Official Site](https://img.shields.io/badge/site-hangfire.io-blue.svg)](http://hangfire.io) [![Latest version](https://img.shields.io/nuget/v/Hangfire.svg)](https://www.nuget.org/packages?q=hangfire) [![License LGPLv3](https://img.shields.io/badge/license-LGPLv3-green.svg)](https://www.gnu.org/licenses/lgpl-3.0.html)
+[![Official Site](https://img.shields.io/badge/site-hangfire.io-blue.svg)](http://hangfire.io) [![Latest version](https://img.shields.io/nuget/v/Hangfire.svg)](https://www.nuget.org/packages?q=hangfire) [![License LGPLv3](https://img.shields.io/badge/license-LGPLv3-green.svg)](https://www.gnu.org/licenses/lgpl-3.0.html) [![Coverity Scan](https://scan.coverity.com/projects/4423/badge.svg?flat=1)](https://scan.coverity.com/projects/hangfireio-hangfire)
 
 ## Build Status
 
@@ -166,7 +166,7 @@ In order to give the community time to respond and upgrade we strongly urge you 
 License
 --------
 
-Copyright © 2023 Hangfire OÜ.
+Copyright © 2013-2024 Hangfire OÜ.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by

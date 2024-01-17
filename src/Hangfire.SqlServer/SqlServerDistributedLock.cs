@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using Dapper;
 using Hangfire.Annotations;
@@ -59,6 +60,7 @@ namespace Hangfire.SqlServer
         private bool _completed;
 
         [Obsolete("Don't use this class directly, use SqlServerConnection.AcquireDistributedLock instead as it provides better safety. Will be removed in 2.0.0.")]
+        [SuppressMessage("Performance", "CA1854:Prefer the \'IDictionary.TryGetValue(TKey, out TValue)\' method")]
         public SqlServerDistributedLock([NotNull] SqlServerStorage storage, [NotNull] string resource, TimeSpan timeout)
         {
             if (storage == null) throw new ArgumentNullException(nameof(storage));
@@ -94,6 +96,7 @@ namespace Hangfire.SqlServer
             }
         }
 
+        [SuppressMessage("Performance", "CA1854:Prefer the \'IDictionary.TryGetValue(TKey, out TValue)\' method")]
         public void Dispose()
         {
             if (_completed) return;
@@ -132,6 +135,8 @@ namespace Hangfire.SqlServer
                     _connection = null;
                 }
             }
+
+            GC.SuppressFinalize(this);
         }
 
         private void ExecuteKeepAliveQuery(object obj)
@@ -211,7 +216,7 @@ namespace Hangfire.SqlServer
                 if (lockResult == -999 /* Indicates a parameter validation or other call error. */)
                 {
                     throw new SqlServerDistributedLockException(
-                        $"Could not place a lock on the resource '{resource}': {(LockErrorMessages.ContainsKey(lockResult) ? LockErrorMessages[lockResult] : $"Server returned the '{lockResult}' error.")}.");
+                        $"Could not place a lock on the resource '{resource}': {(LockErrorMessages.TryGetValue(lockResult, out var message) ? message : $"Server returned the '{lockResult}' error.")}.");
                 }
             } while (started.Elapsed < timeout);
 
@@ -220,15 +225,17 @@ namespace Hangfire.SqlServer
 
         internal static void Release(DbConnection connection, string resource)
         {
-            var command = CreateReleaseCommand(connection, resource, out var resultParameter);
-            command.ExecuteNonQuery();
-
-            var releaseResult = (int)resultParameter.Value;
-
-            if (releaseResult < 0)
+            using (var command = CreateReleaseCommand(connection, resource, out var resultParameter))
             {
-                throw new SqlServerDistributedLockException(
-                    $"Could not release a lock on the resource '{resource}': Server returned the '{releaseResult}' error.");
+                command.ExecuteNonQuery();
+
+                var releaseResult = (int)resultParameter.Value;
+
+                if (releaseResult < 0)
+                {
+                    throw new SqlServerDistributedLockException(
+                        $"Could not release a lock on the resource '{resource}': Server returned the '{releaseResult}' error.");
+                }
             }
         }
 

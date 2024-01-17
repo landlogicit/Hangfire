@@ -237,7 +237,10 @@ namespace Hangfire.Server
         {
             Exception exception = null;
 
-            for (var retryAttempt = 0; retryAttempt < MaxStateChangeAttempts; retryAttempt++)
+            // At least one retry attempt should always be performed.
+            var maxRetryAttempts = MaxStateChangeAttempts > 0 ? MaxStateChangeAttempts : 1;
+
+            for (var retryAttempt = 0; retryAttempt < maxRetryAttempts; retryAttempt++)
             {
                 try
                 {
@@ -357,7 +360,7 @@ namespace Hangfire.Server
                     return action(connection);
                 }
             }
-            catch (DistributedLockTimeoutException e) when (e.Resource.EndsWith(resource))
+            catch (DistributedLockTimeoutException e) when (e.Resource.EndsWith(resource, StringComparison.Ordinal))
             {
                 // DistributedLockTimeoutException here doesn't mean that delayed jobs weren't enqueued.
                 // It just means another Hangfire server did this work.
