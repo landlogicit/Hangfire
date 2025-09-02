@@ -15,6 +15,7 @@
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Concurrent;
 using Hangfire.Annotations;
 
 namespace Hangfire.Storage
@@ -25,6 +26,7 @@ namespace Hangfire.Storage
 
         public static readonly string JobQueueProperty = "Job.Queue";
         public static readonly string ExtendedApi = "Storage.ExtendedApi";
+        public static readonly string ProcessesInsteadOfComponents = "Storage.ProcessesInsteadOfComponents";
 
         public static class Connection
         {
@@ -42,9 +44,13 @@ namespace Hangfire.Storage
             public static readonly string CreateJob = "Transaction.CreateJob";
             public static readonly string SetJobParameter = "Transaction.SetJobParameter";
 
+            private static readonly ConcurrentDictionary<Type, string> RemoveFromQueueFeatureCache = new(); 
+
             public static string RemoveFromQueue(Type fetchedJobType)
             {
-                return TransactionalAcknowledgePrefix + fetchedJobType.Name;
+                return RemoveFromQueueFeatureCache.GetOrAdd(
+                    fetchedJobType,
+                    static type => TransactionalAcknowledgePrefix + type.Name);
             }
         }
 

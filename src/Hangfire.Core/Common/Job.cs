@@ -14,7 +14,9 @@
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -76,13 +78,9 @@ namespace Hangfire.Common
     /// <threadsafety static="true" instance="false" />
     public partial class Job
     {
-        private static readonly object[] EmptyObjectArray =
-#if NET451
-                new object[0]
-#else
-                Array.Empty<object>()
-#endif
-            ;
+        private static readonly object[] EmptyObjectArray = [];
+        private static readonly ConcurrentDictionary<MethodInfo, AsyncStateMachineAttribute>
+            AsyncStateMachineAttributeCache = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Job"/> class with the
@@ -137,7 +135,7 @@ namespace Hangfire.Common
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Job"/> class with the 
-        /// type, metadata of a method and the given list of arguments.
+        /// type, metadata of a method, and the given list of arguments.
         /// </summary>
         /// 
         /// <param name="type">Type that contains the given method.</param>
@@ -159,7 +157,29 @@ namespace Hangfire.Common
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Job"/> class with the type, metadata of a method,
-        /// the given list of arguments and the default target queue for a job.
+        /// and the given list of arguments, specified in a read-only list.
+        /// </summary>
+        /// 
+        /// <param name="type">Type that contains the given method.</param>
+        /// <param name="method">Method that should be invoked.</param>
+        /// <param name="args">Arguments that should be passed during the method call.</param>
+        /// 
+        /// <exception cref="ArgumentNullException"><paramref name="type"/> argument is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="method"/> argument is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="args"/> argument is null.</exception>
+        /// <exception cref="ArgumentException">
+        /// <paramref name="type"/> does not contain the given <paramref name="method"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">Parameter/argument count mismatch.</exception>
+        /// <exception cref="NotSupportedException"><paramref name="method"/> is not supported.</exception>
+        public Job([NotNull] Type type, [NotNull] MethodInfo method, [NotNull] IReadOnlyList<object> args)
+            : this(type, method, args, null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Job"/> class with the type, metadata of a method,
+        /// the given list of arguments, and the default target queue for a job.
         /// </summary>
         ///
         /// <param name="type">Type that contains the given method.</param>
@@ -258,9 +278,7 @@ namespace Hangfire.Common
 
         private static IEnumerable<JobFilterAttribute> GetFilterAttributes(MemberInfo memberInfo)
         {
-            return memberInfo
-                .GetCustomAttributes(typeof(JobFilterAttribute), inherit: true)
-                .Cast<JobFilterAttribute>();
+            return memberInfo.GetCustomAttributes<JobFilterAttribute>(inherit: true);
         }
 
         /// <summary>
@@ -433,7 +451,7 @@ namespace Hangfire.Common
                 // MethodInfo instance, based on the same method name and parameter types.
                 method = type.GetNonOpenMatchingMethod(
                     callExpression.Method.Name,
-                    callExpression.Method.GetParameters().Select(x => x.ParameterType).ToArray());
+                    callExpression.Method.GetParameters().Select(static x => x.ParameterType).ToArray());
             }
 
             return new Job(
@@ -476,7 +494,8 @@ namespace Hangfire.Common
                     typeParameterName);
             }
 
-            if (method.ReturnType == typeof(void) && method.GetCustomAttribute<AsyncStateMachineAttribute>() != null)
+            if (method.ReturnType == typeof(void) &&
+                AsyncStateMachineAttributeCache.GetOrAdd(method, static m => m.GetCustomAttribute<AsyncStateMachineAttribute>()) != null)
             {
                 throw new NotSupportedException("Async void methods are not supported. Use async Task instead.");
             }
@@ -518,9 +537,17 @@ namespace Hangfire.Common
             }
         }
 
-        private static object[] GetExpressionValues(IEnumerable<Expression> expressions)
+        private static object[] GetExpressionValues(ReadOnlyCollection<Expression> expressions)
         {
-            return expressions.Select(GetExpressionValue).ToArray();
+            var result = expressions.Count > 0 ? new object[expressions.Count] : [];
+            var index = 0;
+
+            foreach (var expression in expressions)
+            {
+                result[index++] = GetExpressionValue(expression);
+            }
+
+            return result;
         }
 
         private static object GetExpressionValue(Expression expression)

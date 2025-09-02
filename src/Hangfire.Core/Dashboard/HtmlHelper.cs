@@ -20,7 +20,6 @@ using System.Net;
 using System.Text;
 using Hangfire.Common;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -31,7 +30,7 @@ using Hangfire.Dashboard.Resources;
 
 namespace Hangfire.Dashboard
 {
-    [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "We use instance methods in this class for better observability.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "We use instance methods in this class for better observability.")]
     public class HtmlHelper
     {
         private static readonly Type DisplayNameType;
@@ -304,7 +303,7 @@ namespace Hangfire.Dashboard
         [Obsolete("This method is unused and will be removed in 2.0.0.")]
         public string FormatProperties(IDictionary<string, string> properties)
         {
-            return String.Join(", ", properties.Select(x => $"{x.Key}: \"{x.Value}\""));
+            return String.Join(", ", properties.Select(static x => $"{x.Key}: \"{x.Value}\""));
         }
 
         public NonEscapedString QueueLabel(string queue)

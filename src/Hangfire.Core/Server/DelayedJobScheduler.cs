@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Hangfire.Annotations;
 using Hangfire.Common;
 using Hangfire.Logging;
@@ -80,6 +81,7 @@ namespace Hangfire.Server
         private readonly IBackgroundJobStateChanger _stateChanger;
         private readonly IProfiler _profiler;
         private readonly TimeSpan _pollingDelay;
+        private bool _parallelismIssueLogged;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DelayedJobScheduler"/>
@@ -117,6 +119,22 @@ namespace Hangfire.Server
             _pollingDelay = pollingDelay;
             _profiler = new SlowLogProfiler(_logger);
         }
+
+        /// <summary>
+        /// Gets or sets the maximum degree of parallelism for a scheduler instance.
+        /// When greater than <c>1</c> and batching enabling, delayed jobs will
+        /// be scheduled in parallel under separate connections, increasing the
+        /// throughput.
+        /// </summary>
+        public int MaxDegreeOfParallelism { get; set; }
+
+        /// <summary>
+        /// Gets or sets a task scheduler that will be used when parallel scheduling
+        /// is enabled via the <see cref="MaxDegreeOfParallelism"/> option.
+        /// </summary>
+        public TaskScheduler TaskScheduler { get; set; }
+
+        internal Func<int, TimeSpan> RetryDelayFunc { get; set; } = attempt => TimeSpan.FromSeconds(attempt);
 
         /// <inheritdoc />
         public void Execute(BackgroundProcessContext context)
@@ -158,7 +176,8 @@ namespace Hangfire.Server
                 {
                     var timestamp = JobHelper.ToTimestamp(now);
                     var entries = ((JobStorageConnection)connection).GetFirstByLowestScoreFromSet("schedule", 0, timestamp, BatchSize);
-                    var toBeEnqueued = new List<Tuple<string, int>>();
+                    var toBeTransactionallyEnqueued = new List<Tuple<string, int>>();
+                    var toBeSequentiallyEnqueued = new List<string>();
 
                     if (entries != null)
                     {
@@ -168,17 +187,45 @@ namespace Hangfire.Server
 
                             var colonIndex = entry.IndexOf(':');
 
-                            if (colonIndex < 0) EnqueueBackgroundJob(context, connection, entry);
-                            else toBeEnqueued.Add(Tuple.Create(entry, colonIndex));
+                            if (colonIndex < 0) toBeSequentiallyEnqueued.Add(entry);
+                            else toBeTransactionallyEnqueued.Add(Tuple.Create(entry, colonIndex));
 
                             jobsProcessed++;
                         }
 
-                        if (toBeEnqueued.Count > 0)
+#if !NETSTANDARD1_3
+                        if (MaxDegreeOfParallelism > 1)
+                        {
+                            Parallel.ForEach(
+                                toBeSequentiallyEnqueued,
+                                new ParallelOptions
+                                {
+                                    MaxDegreeOfParallelism = MaxDegreeOfParallelism,
+                                    CancellationToken = context.StoppingToken,
+                                    TaskScheduler = TaskScheduler
+                                },
+                                (jobId, state) =>
+                                {
+                                    using (var dedicated = context.Storage.GetConnection())
+                                    {
+                                        EnqueueBackgroundJob(context, dedicated, jobId);
+                                    }
+                                });
+                        }
+                        else
+#endif
+                        {
+                            foreach (var jobId in toBeSequentiallyEnqueued)
+                            {
+                                EnqueueBackgroundJob(context, connection, jobId);
+                            }
+                        }
+
+                        if (toBeTransactionallyEnqueued.Count > 0)
                         {
                             using (var transaction = connection.CreateWriteTransaction())
                             {
-                                foreach (var tuple in toBeEnqueued)
+                                foreach (var tuple in toBeTransactionallyEnqueued)
                                 {
                                     EnqueueEntry(tuple.Item1, tuple.Item2, transaction);
                                 }
@@ -190,6 +237,12 @@ namespace Hangfire.Server
                 }
                 else
                 {
+                    if (MaxDegreeOfParallelism > 1 && !_parallelismIssueLogged)
+                    {
+                        _logger.Warn("Parallel execution is configured but can't be used, because current storage implementation doesn't support batching.");
+                        _parallelismIssueLogged = true;
+                    }
+
                     for (var i = 0; i < BatchSize; i++)
                     {
                         if (context.IsStopping) break;
@@ -290,7 +343,7 @@ namespace Hangfire.Server
                     exception = ex;
                 }
 
-                context.Wait(TimeSpan.FromSeconds(retryAttempt));
+                context.Wait(RetryDelayFunc(retryAttempt));
             }
 
             _logger.ErrorException(

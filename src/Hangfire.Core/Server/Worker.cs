@@ -14,6 +14,7 @@
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -43,7 +44,11 @@ namespace Hangfire.Server
     {
         [Obsolete("Please use JobStorageFeatures.StorageTransactionalAcknowledge instead.")]
         public static readonly string TransactionalAcknowledgePrefix = JobStorageFeatures.TransactionalAcknowledgePrefix;
-        
+
+        private static readonly ConcurrentDictionary<Guid, string> WorkerGuidCache = new();
+        private static readonly string[] EligibleWorkerStates = new[] { EnqueuedState.StateName, ScheduledState.StateName, ProcessingState.StateName };
+        private static readonly string[] ProcessingStateArray = new[] { ProcessingState.StateName };
+
         private readonly TimeSpan _jobInitializationWaitTimeout;
         private readonly int _maxStateChangeAttempts;
 
@@ -112,7 +117,7 @@ namespace Hangfire.Server
                         context.StoppingToken,
                         timeoutCts.Token))
                     {
-                        var processingState = new ProcessingState(context.ServerId, context.ExecutionId.ToString());
+                        var processingState = new ProcessingState(context.ServerId, WorkerGuidCache.GetOrAdd(context.ExecutionId, static guid => guid.ToString()));
 
                         var appliedState = TryChangeState(
                             context, 
@@ -120,7 +125,7 @@ namespace Hangfire.Server
                             fetchedJob.JobId, 
                             processingState, 
                             null,
-                            new[] { EnqueuedState.StateName, ScheduledState.StateName, ProcessingState.StateName },
+                            EligibleWorkerStates,
                             null,
                             out backgroundJob,
                             linkedCts.Token,
@@ -154,7 +159,7 @@ namespace Hangfire.Server
                             fetchedJob.JobId,
                             state,
                             customData,
-                            new[] { ProcessingState.StateName },
+                            ProcessingStateArray,
                             transactionalAck ? fetchedJob : null,
                             out _,
                             CancellationToken.None,
@@ -305,9 +310,9 @@ namespace Hangfire.Server
                     backgroundJob = new BackgroundJob(jobId, jobData.Job, jobData.CreatedAt, jobData.ParametersSnapshot);
                 }
 
-                using (var jobToken = new ServerJobCancellationToken(connection, backgroundJob.Id, context.ServerId, context.ExecutionId.ToString(), context.StoppedToken))
+                using (var jobToken = new ServerJobCancellationToken(connection, backgroundJob.Id, context.ServerId, WorkerGuidCache.GetOrAdd(context.ExecutionId, static guid => guid.ToString()), context.StoppedToken))
                 {
-                    var performContext = new PerformContext(context.Storage, connection, backgroundJob, jobToken, _profiler, context.ServerId);
+                    var performContext = new PerformContext(context.Storage, connection, backgroundJob, jobToken, _profiler, context.ServerId, null);
 
                     var latency = (DateTime.UtcNow - backgroundJob.CreatedAt).TotalMilliseconds;
                     var duration = Stopwatch.StartNew();

@@ -20,12 +20,11 @@ using Hangfire.States;
 using Hangfire.Storage;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Hangfire.Server
 {
-    internal class ServerJobCancellationToken : IJobCancellationToken, IDisposable
+    internal sealed class ServerJobCancellationToken : IJobCancellationToken, IDisposable
     {
         private static readonly ConcurrentDictionary<string, ConcurrentDictionary<ServerJobCancellationToken, object>> WatchedServers
             = new ConcurrentDictionary<string, ConcurrentDictionary<ServerJobCancellationToken, object>>();
@@ -80,7 +79,7 @@ namespace Hangfire.Server
             }
         }
 
-        [SuppressMessage("SonarLint", "S4275:GettersAndSettersShouldAccessTheExpectedFields", Justification = "Bad property naming for backwards compatibility.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("SonarLint", "S4275:GettersAndSettersShouldAccessTheExpectedFields", Justification = "Bad property naming for backwards compatibility.")]
         public CancellationToken ShutdownToken
         {
             get
@@ -221,7 +220,7 @@ namespace Hangfire.Server
             }
         }
 
-        private class CancellationTokenHolder : IDisposable
+        private sealed class CancellationTokenHolder : IDisposable
         {
             private readonly CancellationTokenSource _abortedTokenSource;
             private readonly CancellationTokenSource _linkedTokenSource;

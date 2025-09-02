@@ -28,7 +28,7 @@ namespace Hangfire.SqlServer
 {
     public class SqlServerDistributedLock : IDisposable
     {
-        private static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan LockTimeout = TimeSpan.FromSeconds(1);
 
         private const string LockMode = "Exclusive";
         private const string LockOwner = "Session";
@@ -49,7 +49,7 @@ namespace Hangfire.SqlServer
             };
 
         private static readonly ThreadLocal<Dictionary<string, int>> AcquiredLocks
-            = new ThreadLocal<Dictionary<string, int>>(() => new Dictionary<string, int>()); 
+            = new ThreadLocal<Dictionary<string, int>>(static () => new Dictionary<string, int>()); 
 
         private DbConnection _connection;
         private readonly SqlServerStorage _storage;
@@ -191,21 +191,18 @@ namespace Hangfire.SqlServer
 
             do
             {
-                var parameters = new DynamicParameters();
-                parameters.Add("@Resource", resource);
-                parameters.Add("@DbPrincipal", "public");
-                parameters.Add("@LockMode", LockMode);
-                parameters.Add("@LockOwner", LockOwner);
-                parameters.Add("@LockTimeout", lockTimeout);
-                parameters.Add("@Result", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
+                using var command = connection
+                    .Create("sp_getapplock", CommandType.StoredProcedure, timeout: (int)(lockTimeout / 1000) + 5)
+                    .AddParameter("@Resource", resource, DbType.String, size: 255)
+                    .AddParameter("@DbPrincipal", "public", DbType.String, size: 32)
+                    .AddParameter("@LockMode", LockMode, DbType.String, size: 32)
+                    .AddParameter("@LockOwner", LockOwner, DbType.String, size: 32)
+                    .AddParameter("@LockTimeout", lockTimeout, DbType.Int32)
+                    .AddReturnParameter("@Result", out var resultParameter, DbType.Int32);
 
-                connection.Execute(
-                    @"sp_getapplock",
-                    parameters,
-                    commandTimeout: (int) (lockTimeout / 1000) + 5,
-                    commandType: CommandType.StoredProcedure);
+                command.ExecuteNonQuery();
 
-                var lockResult = parameters.Get<int>("@Result");
+                var lockResult = (int)resultParameter.Value;
 
                 if (lockResult >= 0)
                 {
@@ -244,31 +241,10 @@ namespace Hangfire.SqlServer
             string resource,
             out DbParameter resultParameter)
         {
-            var command = connection.CreateCommand();
-            command.CommandType = CommandType.StoredProcedure;
-            command.CommandText = "sp_releaseapplock";
-
-            var resourceParameter = command.CreateParameter();
-            resourceParameter.ParameterName = "@Resource";
-            resourceParameter.DbType = DbType.String;
-            resourceParameter.Size = 255;
-            resourceParameter.Value = resource;
-            command.Parameters.Add(resourceParameter);
-
-            var ownerParameter = command.CreateParameter();
-            ownerParameter.ParameterName = "@LockOwner";
-            ownerParameter.DbType = DbType.String;
-            ownerParameter.Size = 32;
-            ownerParameter.Value = LockOwner;
-            command.Parameters.Add(ownerParameter);
-
-            resultParameter = command.CreateParameter();
-            resultParameter.ParameterName = "@Result";
-            resultParameter.DbType = DbType.Int32;
-            resultParameter.Direction = ParameterDirection.ReturnValue;
-            command.Parameters.Add(resultParameter);
-
-            return command;
+            return connection.Create("sp_releaseapplock", CommandType.StoredProcedure)
+                .AddParameter("@Resource", resource, DbType.String, size: 255)
+                .AddParameter("@LockOwner", LockOwner, DbType.String, size: 32)
+                .AddReturnParameter("@Result", out resultParameter, DbType.Int32);
         }
     }
 }

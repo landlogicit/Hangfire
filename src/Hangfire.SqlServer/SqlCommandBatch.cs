@@ -15,12 +15,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Data.Common;
 
 namespace Hangfire.SqlServer
 {
-    internal class SqlCommandBatch : IDisposable
+    internal sealed class SqlCommandBatch : IDisposable
     {
         private readonly List<DbCommand> _commandList = new List<DbCommand>();
         private readonly SqlCommandSet _commandSet;
@@ -59,19 +58,6 @@ namespace Hangfire.SqlServer
             }
 
             _commandSet?.Dispose();
-        }
-
-        public void Append(string commandText, params SqlCommandBatchParameter[] parameters)
-        {
-            var command = Connection.CreateCommand();
-            command.CommandText = commandText;
-
-            foreach (var parameter in parameters)
-            {
-                parameter.AddToCommand(command);
-            }
-
-            Append(command);
         }
 
         public void Append(DbCommand command)
@@ -121,34 +107,6 @@ namespace Hangfire.SqlServer
 
                 command.ExecuteNonQuery();
             }
-        }
-    }
-
-    internal class SqlCommandBatchParameter
-    {
-        public SqlCommandBatchParameter(string parameterName, DbType dbType, int? size = null)
-        {
-            ParameterName = parameterName;
-            DbType = dbType;
-            Size = size;
-        }
-
-        public string ParameterName { get; }
-        public DbType DbType { get; }
-        public int? Size { get; }
-        public object Value { get; set; }
-
-        public void AddToCommand(DbCommand command)
-        {
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = ParameterName;
-            parameter.DbType = DbType;
-
-            if (Size.HasValue) parameter.Size = Size.Value;
-
-            parameter.Value = Value;
-
-            command.Parameters.Add(parameter);
         }
     }
 }

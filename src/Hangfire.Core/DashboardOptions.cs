@@ -31,15 +31,9 @@ namespace Hangfire
         {
             AppPath = "/";
             PrefixPath = string.Empty;
-            _asyncAuthorization =
-#if NET451
-                new IDashboardAsyncAuthorizationFilter[0]
-#else
-                Array.Empty<IDashboardAsyncAuthorizationFilter>()
-#endif
-                ;
+            _asyncAuthorization = [];
             Authorization = DefaultAuthorization;
-            IsReadOnlyFunc = _ => false;
+            IsReadOnlyFunc = static _ => false;
             StatsPollingInterval = 2000;
             DisplayStorageConnectionString = true;
             DashboardTitle = "Hangfire Dashboard";
@@ -75,13 +69,7 @@ namespace Hangfire
 
                 if (ReferenceEquals(Authorization, DefaultAuthorization))
                 {
-                    Authorization =
-#if NET451
-                        new IDashboardAuthorizationFilter[0]
-#else
-                        Array.Empty<IDashboardAuthorizationFilter>()
-#endif
-                        ;
+                    Authorization = [];
                 }
             }
         }
@@ -124,5 +112,16 @@ namespace Hangfire
         /// Optional favicon path
         /// </summary>
         public string FaviconPath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the time threshold after which a warning icon will be shown near a job or a
+        /// server, depending on its last reported heartbeat.
+        /// </summary>
+        /// <remarks>
+        /// It should be larger than a configured <see cref="BackgroundJobServerOptions.HeartbeatInterval"/>
+        /// value, to give servers a chance to report it, but is expected to be lower than a configured
+        /// <see cref="BackgroundJobServerOptions.ServerTimeout"/> value, since this is a heuristic anyway.
+        /// </remarks>
+        public TimeSpan ServerPossiblyAbortedThreshold { get; set; } = TimeSpan.FromMinutes(1);
     }
 }

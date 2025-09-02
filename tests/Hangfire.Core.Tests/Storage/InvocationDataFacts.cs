@@ -667,6 +667,9 @@ namespace Hangfire.Core.Tests.Storage
                     new object[] { Job.FromExpression<NestedType>(x => x.Method()), "Hangfire.Core.Tests.Storage.InvocationDataFacts+NestedType, Hangfire.Core.Tests", "Method", "[]", "[]" },
                     new object[] { Job.FromExpression<NestedType>(x => x.NestedGenericMethod(1)), "Hangfire.Core.Tests.Storage.InvocationDataFacts+NestedType, Hangfire.Core.Tests", "NestedGenericMethod", "[\"System.Int32\"]", "[\"1\"]" },
 
+                    new object[] { Job.FromExpression(() => ArrayOfNested(new NestedType[0])), "Hangfire.Core.Tests.Storage.InvocationDataFacts, Hangfire.Core.Tests", "ArrayOfNested", "[\"Hangfire.Core.Tests.Storage.InvocationDataFacts+NestedType[], Hangfire.Core.Tests\"]", "[\"[]\"]" },
+                    new object[] { Job.FromExpression(() => ArrayOfNestedGeneric(new NestedGenericType<int>[0])), "Hangfire.Core.Tests.Storage.InvocationDataFacts, Hangfire.Core.Tests", "ArrayOfNestedGeneric", "[\"Hangfire.Core.Tests.Storage.InvocationDataFacts+NestedGenericType`1[[System.Int32]][], Hangfire.Core.Tests\"]", "[\"[]\"]" },
+
                     new object[] { Job.FromExpression<GenericType<int>>(x => x.Method()), "Hangfire.Core.Tests.Storage.InvocationDataFacts+GenericType`1[[System.Int32]], Hangfire.Core.Tests", "Method", "[]", "[]" },
                     new object[] { Job.FromExpression<GenericType<GlobalType>>(x => x.Method()), "Hangfire.Core.Tests.Storage.InvocationDataFacts+GenericType`1[[GlobalType, Hangfire.Core.Tests]], Hangfire.Core.Tests", "Method", "[]", "[]" },
                     new object[] { Job.FromExpression<GenericType<InvocationDataFacts>>(x => x.Method()), "Hangfire.Core.Tests.Storage.InvocationDataFacts+GenericType`1[[Hangfire.Core.Tests.Storage.InvocationDataFacts, Hangfire.Core.Tests]], Hangfire.Core.Tests", "Method", "[]", "[]" },
@@ -971,6 +974,26 @@ namespace Hangfire.Core.Tests.Storage
             Assert.Equal("critical", invocationData.Queue);
         }
 
+        [Fact]
+        public void Deserialize_CorrectlyHandles_SystemXmlLinqEntities_SerializedWithNETFramework()
+        {
+            var job = InvocationData.DeserializePayload(
+                "{\"t\":\"Hangfire.Core.Tests.Storage.InvocationDataFacts, Hangfire.Core.Tests\",\"m\":\"XmlLinqMethod\",\"p\":[\"System.Xml.Linq.XElement, System.Xml.Linq\"],\"a\":[\"{\\\"element\\\":\\\"This is a test\\\"}\"]}")
+                .DeserializeJob();
+
+            Assert.Equal(typeof(InvocationDataFacts), job.Type);
+        }
+
+        [Fact]
+        public void Deserialize_CorrectlyHandles_SystemXmlLinqEntities_SerializedWithNETCore()
+        {
+            var job = InvocationData.DeserializePayload(
+                "{\"t\":\"Hangfire.Core.Tests.Storage.InvocationDataFacts, Hangfire.Core.Tests\",\"m\":\"XmlLinqMethod\",\"p\":[\"System.Xml.Linq.XElement, System.Private.Xml.Linq\"],\"a\":[\"{\\\"element\\\":\\\"This is a test\\\"}\"]}")
+                .DeserializeJob();
+
+            Assert.Equal(typeof(InvocationDataFacts), job.Type);
+        }
+
         private class FieldsOnlyContractResolver: DefaultContractResolver 
         {
             protected override List<MemberInfo> GetSerializableMembers(Type objectType)
@@ -1022,6 +1045,26 @@ namespace Hangfire.Core.Tests.Storage
         {
         }
 
+        [UsedImplicitly]
+        [SuppressMessage("Usage", "xUnit1013:Public method should be marked as test")]
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+        public static void XmlLinqMethod(System.Xml.Linq.XElement value)
+        {
+        }
+
+        [UsedImplicitly]
+        [SuppressMessage("Usage", "xUnit1013:Public method should be marked as test")]
+        public static void ArrayOfNested(NestedType[] value)
+        {
+        }
+
+        [UsedImplicitly]
+        [SuppressMessage("Usage", "xUnit1013:Public method should be marked as test")]
+        public static void ArrayOfNestedGeneric(NestedGenericType<int>[] value)
+        {
+        }
+
+        [UsedImplicitly]
         public class GenericType<T1>
         {
             public void Method()
@@ -1063,6 +1106,13 @@ namespace Hangfire.Core.Tests.Storage
             [SuppressMessage("Performance", "CA1822:Mark members as static")]
             [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global")]
             public void NestedGenericMethod<T>(T arg1) { }
+        }
+
+        [UsedImplicitly]
+        public class NestedGenericType<T>
+        {
+            [UsedImplicitly]
+            public T Value { get; set; }
         }
 
         public interface IParent

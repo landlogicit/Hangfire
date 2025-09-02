@@ -28,23 +28,17 @@ namespace Hangfire.Common
         {
             if (exception != null && !exception.Data.Contains(DataKey))
             {
-                exception.Data.Add(DataKey, exception.StackTrace);
+                exception.Data.Add(DataKey, GetStackTrace(exception, includeFileInfo: false));
             }
         }
 
-        public static string ToStringWithOriginalStackTrace([NotNull] this Exception exception, int? numLines)
+        public static string ToStringWithOriginalStackTrace([NotNull] this Exception exception, int? numLines, bool includeFileInfo)
         {
             if (exception == null) throw new ArgumentNullException(nameof(exception));
-
-            if (!exception.Data.Contains(DataKey))
-            {
-                return GetFirstLines(exception.ToString(), numLines);
-            }
-
-            return GetFirstLines(ToStringHelper(exception, false), numLines);
+            return GetFirstLines(ToStringHelper(exception, false, includeFileInfo), numLines);
         }
 
-        private static string ToStringHelper(Exception exception, bool isInner)
+        private static string ToStringHelper(Exception exception, bool isInner, bool includeFileInfo)
         {
             var sb = new StringBuilder();
             sb.Append(exception.GetType().FullName);
@@ -54,11 +48,11 @@ namespace Hangfire.Common
             if (exception.InnerException != null)
             {
                 sb.Append(" ---> ");
-                sb.Append(ToStringHelper(exception.InnerException, true));
+                sb.Append(ToStringHelper(exception.InnerException, true, includeFileInfo));
             }
             else sb.Append('\n');
 
-            var stackTrace = exception.Data.Contains(DataKey) ? (string)exception.Data[DataKey] : exception.StackTrace;
+            var stackTrace = exception.Data.Contains(DataKey) ? (string)exception.Data[DataKey] : GetStackTrace(exception, includeFileInfo);
             if (!String.IsNullOrWhiteSpace(stackTrace))
             {
                 sb.Append(stackTrace);
@@ -90,6 +84,15 @@ namespace Hangfire.Common
 
                 return builder.ToString();
             }
+        }
+
+        private static string GetStackTrace(Exception ex, bool includeFileInfo)
+        {
+#if NETSTANDARD1_3
+            return ex.StackTrace;
+#else
+            return new System.Diagnostics.StackTrace(ex, includeFileInfo).ToString();
+#endif
         }
     }
 }

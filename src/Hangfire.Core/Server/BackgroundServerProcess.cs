@@ -142,7 +142,7 @@ namespace Hangfire.Server
             return new ServerHeartbeatProcess(_options.HeartbeatInterval, _options.ServerTimeout, requestRestart)
                 .UseBackgroundPool(threadCount: 1
 #if !NETSTANDARD1_3
-                    , thread => { thread.Priority = ThreadPriority.AboveNormal; }
+                    , static thread => { thread.Priority = ThreadPriority.AboveNormal; }
 #endif
                 )
                 .Create(heartbeatContext, _options);
@@ -152,11 +152,26 @@ namespace Hangfire.Server
         {
             yield return new ServerWatchdog(_options.ServerCheckInterval, _options.ServerTimeout).UseBackgroundPool(threadCount: 1);
             yield return new ServerJobCancellationWatcher(_options.CancellationCheckInterval).UseBackgroundPool(threadCount: 1);
+
+            if (_storage.HasFeature(Storage.JobStorageFeatures.ProcessesInsteadOfComponents))
+            {
+                foreach (var serverProcess in _storage.GetServerRequiredProcesses())
+                {
+                    yield return serverProcess.UseBackgroundPool(threadCount: 1);
+                }
+            }
         }
 
         private IEnumerable<IBackgroundProcessDispatcherBuilder> GetStorageComponents()
         {
-            return _storage.GetComponents().Select(component => new ServerProcessDispatcherBuilder(
+            if (_storage.HasFeature(Storage.JobStorageFeatures.ProcessesInsteadOfComponents))
+            {
+                return _storage.GetStorageWideProcesses().Select(static process => process.UseBackgroundPool(threadCount: 1));
+            }
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            return _storage.GetComponents().Select(static component => new ServerProcessDispatcherBuilder(
+#pragma warning restore CS0618 // Type or member is obsolete
                 component, 
                 threadStart => BackgroundProcessExtensions.DefaultThreadFactory(1, component.GetType().Name, threadStart, null)));
         }
@@ -165,7 +180,11 @@ namespace Hangfire.Server
         {
             var serverName = _options.ServerName
                  ?? Environment.GetEnvironmentVariable("COMPUTERNAME")
-                 ?? Environment.GetEnvironmentVariable("HOSTNAME");
+                 ?? Environment.GetEnvironmentVariable("HOSTNAME")
+#if !NETSTANDARD1_3
+                 ?? Environment.MachineName
+#endif
+                ;
 
             var guid = Guid.NewGuid().ToString();
 
@@ -228,7 +247,7 @@ namespace Hangfire.Server
                 throw new InvalidOperationException("No dispatchers registered for the processing server.");
             }
 
-            _logger.Info($"{GetServerTemplate(context.ServerId)} is starting the registered dispatchers: {String.Join(", ", _dispatcherBuilders.Select(builder => $"{builder}"))}...");
+            _logger.Info($"{GetServerTemplate(context.ServerId)} is starting the registered dispatchers: {String.Join(", ", _dispatcherBuilders.Select(static builder => $"{builder}"))}...");
 
             foreach (var dispatcherBuilder in _dispatcherBuilders)
             {
@@ -270,7 +289,7 @@ namespace Hangfire.Server
 
             if (nonStopped.Count > 0)
             {
-                var nonStoppedNames = nonStopped.Select(dispatcher => $"{dispatcher.ToString()}").ToArray();
+                var nonStoppedNames = nonStopped.Select(static dispatcher => $"{dispatcher}").ToArray();
                 _logger.Warn($"{GetServerTemplate(context.ServerId)} stopped non-gracefully due to {String.Join(", ", nonStoppedNames)}. Outstanding work on those dispatchers could be aborted, and there can be delays in background processing. This server instance will be incorrectly shown as active for a while. To avoid non-graceful shutdowns, investigate what prevents from stopping gracefully and add CancellationToken support for those methods.");
             }
             else

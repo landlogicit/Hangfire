@@ -14,6 +14,7 @@
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 #if !NETSTANDARD1_3
 using System.ComponentModel;
@@ -32,13 +33,16 @@ namespace Hangfire.Storage
 {
     public class InvocationData
     {
-        private static readonly object[] EmptyArray =
-#if NET451
-                new object[0]
-#else
-                Array.Empty<object>()
-#endif
-            ;
+        private static readonly
+            ConcurrentDictionary<MethodDeserializerCacheKey, MethodDeserializerCacheValue>
+            MethodDeserializerCache = new();
+
+        private static readonly
+            ConcurrentDictionary<MethodSerializerCacheKey, MethodSerializerCacheValue>
+            MethodSerializerCache = new();
+
+        private static readonly ConcurrentDictionary<Tuple<Func<Type, string>, string>, string[]>
+            ParameterTypesDeserializerCache = new();
 
         [Obsolete("Please use IGlobalConfiguration.UseTypeResolver instead. Will be removed in 2.0.0.")]
         public static void SetTypeResolver([CanBeNull] Func<string, Type> typeResolver)
@@ -93,25 +97,19 @@ namespace Hangfire.Storage
 
             try
             {
-                var type = typeResolver(Type);
+                CachedDeserializeMethod(typeResolver, Type, Method, ParameterTypes, out var type, out var method);
 
-                var parameterTypesArray = DeserializeParameterTypesArray();
-                var parameterTypes = parameterTypesArray?.Select(typeResolver).ToArray();
+                object[] arguments;
 
-                var method = type.GetNonOpenMatchingMethod(Method, parameterTypes);
-
-                if (method == null)
+                if (Arguments != null && !Arguments.Equals("[]", StringComparison.Ordinal))
                 {
-                    var parametersString = parameterTypes != null
-                        ? String.Join(", ", parameterTypes.Select(x => x.Name))
-                        : ParameterTypes ?? String.Empty;
-                    
-                    throw new InvalidOperationException(
-                        $"The type `{type.FullName}` does not contain a method with signature `{Method}({parametersString})`");
+                    var argumentsArray = SerializationHelper.Deserialize<string[]>(Arguments);
+                    arguments = DeserializeArguments(method, argumentsArray);
                 }
-
-                var argumentsArray = SerializationHelper.Deserialize<string[]>(Arguments);
-                var arguments = DeserializeArguments(method, argumentsArray);
+                else
+                {
+                    arguments = [];
+                }
 
                 return new Job(type, method, arguments, Queue);
             }
@@ -123,15 +121,19 @@ namespace Hangfire.Storage
 
         public static InvocationData SerializeJob(Job job)
         {
-            var typeSerializer = TypeHelper.CurrentTypeSerializer;
+            CachedSerializeMethod(
+                TypeHelper.CurrentTypeSerializer,
+                job.Type,
+                job.Method,
+                out var typeName,
+                out var methodName,
+                out var parameterTypes);
 
-            var type = typeSerializer(job.Type);
-            var methodName = job.Method.Name;
-            var parameterTypes = SerializationHelper.Serialize(
-                job.Method.GetParameters().Select(x => typeSerializer(x.ParameterType)).ToArray());
-            var arguments = SerializationHelper.Serialize(SerializeArguments(job.Method, job.Args));
+            var arguments = job.Args.Count == 0
+                ? "[]"
+                : SerializationHelper.Serialize(SerializeArguments(job.Method, job.Args));
 
-            return new InvocationData(type, methodName, parameterTypes, arguments, job.Queue);
+            return new InvocationData(typeName, methodName, parameterTypes, arguments, job.Queue);
         }
 
         public static InvocationData DeserializePayload(string payload)
@@ -182,7 +184,7 @@ namespace Hangfire.Storage
         {
             if (GlobalConfiguration.HasCompatibilityLevel(CompatibilityLevel.Version_170))
             {
-                var parameterTypes = DeserializeParameterTypesArray();
+                var parameterTypes = DeserializeParameterTypesArray(TypeHelper.CurrentTypeSerializer, ParameterTypes);
                 var arguments = excludeArguments ? null : SerializationHelper.Deserialize<string[]>(Arguments);
 
                 return SerializationHelper.Serialize(new JobPayload
@@ -200,25 +202,28 @@ namespace Hangfire.Storage
                 : this);
         }
 
-        private string[] DeserializeParameterTypesArray()
+        private static string[] DeserializeParameterTypesArray(Func<Type, string> typeSerializer, string parameterTypes)
         {
-            try
-            {
-                return SerializationHelper.Deserialize<string[]>(ParameterTypes);
-            }
-            catch (Exception outerException) when (outerException.IsCatchableExceptionType())
+            return ParameterTypesDeserializerCache.GetOrAdd(Tuple.Create(typeSerializer, parameterTypes), static tuple =>
             {
                 try
                 {
-                    var parameterTypes = SerializationHelper.Deserialize<Type[]>(ParameterTypes);
-                    return parameterTypes.Select(TypeHelper.CurrentTypeSerializer).ToArray();
+                    return SerializationHelper.Deserialize<string[]>(tuple.Item2);
                 }
-                catch (Exception ex) when (ex.IsCatchableExceptionType())
+                catch (Exception outerException) when (outerException.IsCatchableExceptionType())
                 {
-                    ExceptionDispatchInfo.Capture(outerException).Throw();
-                    throw;
+                    try
+                    {
+                        var types = SerializationHelper.Deserialize<Type[]>(tuple.Item2);
+                        return types.Select(tuple.Item1).ToArray();
+                    }
+                    catch (Exception ex) when (ex.IsCatchableExceptionType())
+                    {
+                        ExceptionDispatchInfo.Capture(outerException).Throw();
+                        throw;
+                    }
                 }
-            }
+            });
         }
 
         internal static string[] SerializeArguments(MethodInfo methodInfo, IReadOnlyList<object> arguments)
@@ -272,7 +277,7 @@ namespace Hangfire.Storage
 
         internal static object[] DeserializeArguments(MethodInfo methodInfo, string[] arguments)
         {
-            if (arguments == null) return EmptyArray;
+            if (arguments == null) return [];
 
             var parameters = methodInfo.GetParameters();
             var result = new List<object>(arguments.Length);
@@ -299,6 +304,58 @@ namespace Hangfire.Storage
             }
 
             return result.ToArray();
+        }
+
+        private static void CachedSerializeMethod(
+            Func<Type, string> typeSerializer, Type type, MethodInfo methodInfo,
+            out string typeName, out string methodName, out string parameterTypes)
+        {
+            var entry = MethodSerializerCache.GetOrAdd(
+                new MethodSerializerCacheKey { TypeSerializer = typeSerializer, Type = type, Method = methodInfo },
+                static key =>
+                {
+                    return new MethodSerializerCacheValue
+                    {
+                        TypeName = key.TypeSerializer(key.Type),
+                        MethodName = key.Method.Name,
+                        ParameterTypes = SerializationHelper.Serialize(
+                            key.Method.GetParameters().Select(x => key.TypeSerializer(x.ParameterType)).ToArray())
+                    };
+                });
+
+            typeName = entry.TypeName;
+            methodName = entry.MethodName;
+            parameterTypes = entry.ParameterTypes;
+        }
+
+        private static void CachedDeserializeMethod(
+            Func<string, Type> typeResolver, string typeName, string methodName, string parameterTypes,
+            out Type type, out MethodInfo methodInfo)
+        {
+            var entry = MethodDeserializerCache.GetOrAdd(
+                new MethodDeserializerCacheKey { TypeResolver = typeResolver, TypeName = typeName, MethodName = methodName, ParameterTypes = parameterTypes },
+                static key =>
+                {
+                    var type = key.TypeResolver(key.TypeName);
+                    var parameterTypesArray = DeserializeParameterTypesArray(TypeHelper.CurrentTypeSerializer, key.ParameterTypes);
+                    var parameterTypes = parameterTypesArray?.Select(key.TypeResolver).ToArray();
+                    var method = type.GetNonOpenMatchingMethod(key.MethodName, parameterTypes);
+
+                    if (method == null)
+                    {
+                        var parametersString = parameterTypes != null
+                            ? String.Join(", ", parameterTypes.Select(static x => x.Name))
+                            : key.ParameterTypes ?? String.Empty;
+                    
+                        throw new InvalidOperationException(
+                            $"The type `{type.FullName}` does not contain a method with signature `{key.MethodName}({parametersString})`");
+                    }
+
+                    return new MethodDeserializerCacheValue { Type = type, Method = method };
+                });
+
+            type = entry.Type;
+            methodInfo = entry.Method;
         }
 
         private static object DeserializeArgument(string argument, Type type)
@@ -373,7 +430,7 @@ namespace Hangfire.Storage
             return result;
         }
 
-        private class JobPayload
+        private sealed class JobPayload
         {
             [JsonProperty("t")]
             public string TypeName { get; set; }
@@ -389,6 +446,34 @@ namespace Hangfire.Storage
 
             [JsonProperty("q", NullValueHandling = NullValueHandling.Ignore)]
             public string Queue { get; set; }
+        }
+
+        private readonly record struct MethodDeserializerCacheKey
+        {
+            public Func<string, Type> TypeResolver { get; init; }
+            public string TypeName { get; init; }
+            public string MethodName { get; init; }
+            public string ParameterTypes { get; init; }
+        }
+
+        private readonly record struct MethodDeserializerCacheValue
+        {
+            public Type Type { get; init; }
+            public MethodInfo Method { get; init; }
+        }
+
+        private readonly record struct MethodSerializerCacheKey
+        {
+            public Func<Type, string> TypeSerializer { get; init; }
+            public Type Type { get; init; }
+            public MethodInfo Method { get; init; }
+        }
+        
+        private readonly record struct MethodSerializerCacheValue
+        {
+            public string TypeName { get; init; }
+            public string MethodName { get; init; }
+            public string ParameterTypes { get; init; }
         }
     }
 }

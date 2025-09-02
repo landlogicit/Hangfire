@@ -5,22 +5,228 @@
     <version>%version%</version>
     <title>Hangfire</title>
     <authors>Sergey Odinokov</authors>
-    <owners>odinserj</owners>
+    <owners>HangfireIO, odinserj</owners>
     <projectUrl>https://www.hangfire.io/</projectUrl>
     <repository type="git" url="https://github.com/HangfireIO/Hangfire.git" commit="%commit%" />
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <licenseUrl>https://raw.github.com/HangfireIO/Hangfire/master/LICENSE.md</licenseUrl>
+    <license type="file">LICENSE.md</license>
+    <icon>icon.png</icon>
+    <readme>README.md</readme>
     <summary>An easy way to perform fire-and-forget, delayed and recurring tasks inside ASP.NET applications. No Windows Service required.</summary>
     <description>
 An easy and reliable way to perform fire-and-forget, delayed and recurring, long-running, short-running, CPU or I/O intensive tasks inside ASP.NET applications. No Windows Service / Task Scheduler required. Even ASP.NET is not required.
 Backed by Redis, SQL Server, SQL Azure or MSMQ. This is a .NET alternative to Sidekiq, Resque and Celery.
 https://www.hangfire.io/
     </description>
-    <copyright>Copyright © 2013-2024 Hangfire OÜ</copyright>
-    <tags>Hangfire AspNet MVC AspNetCore SqlServer Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
-    <releaseNotes>
+    <copyright>Copyright © 2013-2025 Hangfire OÜ</copyright>
+    <tags>Hangfire AspNet MVC AspNetCore NetCore SqlServer Long-Running Background Fire-And-Forget Delayed Recurring Tasks Jobs Scheduler Threading Queues</tags>
+    <releaseNotes><![CDATA[
 Release notes are available in our blog https://www.hangfire.io/blog/
 Please see https://docs.hangfire.io/en/latest/upgrade-guides/upgrading-to-hangfire-1.8.html to learn how to upgrade.
+
+1.8.21
+
+Hangfire.Core
+
+• Added – `FailedState.IncludeFileInfo` to optionally show/hide line numbers in exceptions in Failed state.
+• Changed – Include line numbers for exceptions by default when available.
+• Fixed – Portuguese (Brazil) translations in Strings.pt-BR.resx (by @pedro-cons).
+• Fixed – Static `BackgroundJob` class always acquires the most current `JobStorage.Current` instance.
+• Fixed – Static `RecurringJob` class always acquires the most current `JobStorage.Current` instance.
+
+Hangfire.SqlServer
+
+• Added – `SqlServerStorageOptions.DisableTransactionScope` option for .NET Framework targets.
+• Project – Port Monitoring API tests from the Hangfire.InMemory storage for better coverage.
+• Project – Run tests for different targets in parallel with different databases.
+
+1.8.20
+
+Hangfire.Core
+
+• Fixed – Glyphicons from Bootstrap are not displaying after upgrading to version 1.8.19.
+
+1.8.19
+
+Hangfire.Core
+
+• Changed – Update Bootstrap to the custom version of 3.4.2 to avoid false alerts on unused features.
+• Fixed – Typos in Portuguese translation (by @VianaArthur).
+• Fixed – Unnecessary recurring job update transaction when nothing is changed after an error.
+
+Hangfire.SqlServer
+
+• Fixed – Sliding invisibility timeout isn't prolonged in lightweight servers, causing jobs to be restarted.
+
+1.8.18
+
+Hangfire.Core
+
+• Added – `DashboardOptions.ServerPossiblyAbortedThreshold` to configure a custom threshold for "possibly aborted" warnings.
+• Fixed – Expired jobs are still shown on the "Retries" page in some cases.
+• Fixed – Issues with `CultureInfo`-related differences after upgrading to 1.8.15–1.8.17.
+• Fixed – Don't leak `AsyncLocal` values from synchronous background job methods.
+• Fixed – Don't throw an exception when passing the `Job.Args` property to the `Job` class' constructor.
+• Project – Make the lock file usable for both .NET 8.0 and .NET 9.0 builds.
+• Project – Make code generation for `cshtml` files working on newer platforms.
+
+Hangfire.AspNetCore
+
+• Fixed – Swallow possible `ObjectDisposedException` in the `StopAsync` method.
+• Fixed – Avoid `NullReferenceException` when `LocalIpAddress` or `RemoteIpAddress` is null.
+
+1.8.17
+
+Hangfire.SqlServer
+
+• Fixed – `InvalidCastException` while fetching a job with older schemas regression from 1.8.16.
+
+1.8.16
+
+Hangfire.Core
+
+• Changed – Include fewer stack frames in exceptions come from `IServerFilter` implementations.
+• Changed – Don't include file information in the `ExceptionDetails` property of a FailedState instance.
+• Changed – Switch back to `CancellationEvent` usage instead of `CancellationToken.WaitHandle`.
+• Fixed – Don't commit external transaction in the `BackgroundJobStateChanger` implementation.
+• Fixed – Use safe default serializer settings for Newtonsoft.Json 12.X and below.
+• Project – Fix builds for the `net451` platform when using .NET 9.0.
+• Project – Significantly reduce execution time of unit tests in the `RecurringJobSchedulerFacts` class.
+• Project – Bump `Microsoft.CodeAnalysis.NetAnalyzers` package to version 9.0.0.
+
+Hangfire.SqlServer
+
+• Changed – Use vanilla ADO.NET when fetching a job in the `SqlServerJobQueue` implementation.
+• Fixed – SqlException: Must declare the scalar variable "@key" in delayed and recurring job schedulers.
+• Fixed – Decrease the `LockTimeout` time when calling the `sp_getapplock` procedure to 1 second for less blocking.
+• Project – Disable parallel tests execution when building under .NET 9.0.
+• Project – Run tests over the latest Microsoft.Data.SqlClient package and the `net6.0` platform.
+• Project – Reduce execution time of integration tests.
+• Project – Disable `PoolBlockingPeriod` setting on AppVeyor to handle transient test failures.
+
+1.8.15
+
+Hangfire.Core
+
+• Added – New `AutomaticRetryAttribute.ExceptOn` property to skip retries for specific exceptions.
+• Changed – Refactor filters pipeline to use less LINQ magic and fewer allocations.
+• Changed – Use `GetCultureInfo` instead of creating an instance in the `CaptureCultureAttribute` filter.
+• Changed – Cache some immutable data to avoid extra allocations.
+• Fixed – Improve loopback address detection (by @meziantou).
+• Fixed – Reformulate misleading error messages regarding retry timings (by @RGFuaWVs).
+• Fixed – Problem with missing localizations in the previous version.
+• Fixed – Don't hide exception details on Failed Jobs page when the exception message is empty.
+• Fixed – Problems with the first restore when using the `build.bat` command.
+• Fixed – Better display of canceled recurring jobs in dashboard.
+• Fixed – Less overall allocations with using static delegates and struct-based iterators.
+• Fixed – Improve precision of some diagnostic messages in the wait protection logic.
+• Fixed – Make all private and internal classes sealed to improve code consistency.
+• Fixed – Less overall pressure on garbage collector.
+
+Hangfire.SqlServer
+
+• Changed – Use query template caching based on schema name to avoid excessive `string` allocations.
+• Changed – Use static callbacks almost anywhere to avoid unnecessary delegate allocations.
+• Changed – Use `QuerySingle`* or `ReadSingle`* where possible to avoid allocating lists.
+• Changed – Unify `DbCommand` and `DbParameter` creation logic to improve code consistency.
+
+1.8.13 and 1.8.14
+
+Hangfire.Core
+
+• Changed – Partial cache for serialization and deserialization in `InvocationData` to produce less strings.
+• Changed – Add caching for default type serializer and resolver.
+• Changed – Don't let `JobFilter`-related logic to show up in profilers.
+• Changed – Modify `IProfiler` to be less allocatey for diagnostic purposes that almost never run.
+• Changed – Prefer using `CancellationToken.WaitHandle` again, since early .NET Core days are gone.
+• Changed – Fewer allocations when working with `IStateHandler` collections in a state machine.
+• Fixed – Redirect the "System.Private.Xml.Linq" assembly to the "System.Xml.Linq" one for better interoperability.
+• Fixed – Don't throw `KeyNotFoundException` when recurring job is malformed.
+• Fixed – Proper relative path calculation in `UrlHelper.To` for OWIN-based Dashboard UI (by @LordJZ).
+• Fixed – Typo in the Turkish localization file (by @ismkdc).
+• Project – Switch to a modern PowerShell 7+ to speed up SignPath installation on AppVeyor.
+
+Hangfire.SqlServer
+
+• Changed – Limit polling queries when queues are empty with a semaphore for all configurations.
+• Changed – Use per-queue signaling for same-process workers, instead of having a global signal.
+• Fixed – Don't silently truncate queue names, throw an exception instead.
+• Project – Decrease delays in SQL Server-related tests to complete them faster.
+
+1.8.12
+
+Hangfire.Core
+
+• Added – `MaxDegreeOfParallelismForSchedulers` experimental server option if supported by storage.
+• Added – Experimental support for parallel execution of the delayed job scheduler.
+• Added – Experimental support for parallel execution of the recurring job scheduler.
+• Fixed – Recurring job is scheduled to the past after recovering from error with `AddOrUpdate`.
+• Fixed – `AddOrUpdate` triggers execution of a recurring job, even if its next execution is in the future.
+• Fixed – Two very minor errors in the Swedish localization file (by @Uglack).
+
+Hangfire.SqlServer
+
+• Fixed – Populate `InvocationData` and `LoadException` properties in `JobDetails` method results.
+
+1.8.11
+
+Hangfire.Core
+
+• Changed – Add icons and fix metadata for NuGet packages.
+• Changed – Bump ILRepack to version 2.0.27 to avoid problems with internalizing.
+• Fixed – "Type exists in both Cronos and Hangfire.Core" exception.
+
+1.8.10
+
+Hangfire.Core
+
+• Changed – Added Norwegian translations for new keys (by @khellang).
+• Changed – Update Brazilian Portuguese translation (by @HugoAlames).
+• Changed – Bump Cronos dependency to version 0.8.3.
+
+Hangfire.AspNetCore
+
+• Fixed – Don't check `HasStarted` in `Response.WriteAsync` to avoid breaking dispatchers.
+
+Hangfire.SqlServer
+
+• Changed – Bump Dapper for the `netstandard2.0` platform to version 2.1.28.
+• Changed – Bump Dapper for `net451` and `netstandard1.3` platforms to version 1.60.6.
+
+Hangfire.Core, Hangfire.NetCore, Hangfire.AspNetCore, Hangfire.SqlServer, Hangfire.SqlServer.Msmq
+
+• Project – Enable NuGet package and DLL signing with a company certificate.
+• Project – Require NuGet package signature validation on restore for dependencies.
+• Project – Add `HangfireIO` as a package owner.
+
+1.8.9
+
+Hangfire.Core
+
+• Changed – Use `Environment.MachineName` as a server name if other environment vars aren't available.
+• Changed – Bump the Cronos package version from 0.7.1 to 0.8.1.
+• Changed – Improve portuguese translations (by @filipe-silva).
+• Fixed – Possible `NullReferenceException` on the Deleted Jobs page (regression from 1.8.7).
+• Project – Enable full source link support with embedded symbols and repository-based sources.
+• Project – Enable repeatable package restore using a lock file.
+• Project – Run unit tests against the `net6.0` platform.
+• Project – Modernise the build system and clean up the build scripts.
+
+Hangfire.SqlServer
+
+• Project – Enable full source link support with embedded symbols and repository-based sources.
+• Project – Enable repeatable package restore using a lock file.
+• Project – Run unit tests against the `net6.0` platform.
+
+Hangfire.NetCore
+
+• Project – Enable full source link support with embedded symbols and repository-based sources.
+• Project – Enable repeatable package restore using a lock file.
+
+Hangfire.AspNetCore
+
+• Fixed – Don't attempt to write response headers when response has already started (by @maliming).
+• Project – Enable full source link support with embedded symbols and repository-based sources.
+• Project – Enable repeatable package restore using a lock file.
 
 1.8.7
 
@@ -32,7 +238,7 @@ Hangfire.Core
 • Added – Show the exception column on the Deleted Jobs page when available and supported by storage.
 • Changed – Reduce package size by stripping unnecessary locales in Moment.js.
 • Changed – Bump Microsoft.Owin package to version 4.2.2.
-• Changed – Log a warning message when a server listens to unsupported queue names.
+• Changed – Log a warning message when a server listens to unsupported queue names (by @MuhamedAbdalla).
 • Changed – Use storage time, if available, to show delay warnings in the Dashboard UI.
 • Fixed – Proper rendering of generic arguments on the Job Details page (by @olivermue).
 • Fixed – Language inconsistency in the Dashboard UI related to date/time description.
@@ -42,7 +248,7 @@ Hangfire.Core
 • Fixed – CSS for Enqueued and Deleted state cards in dark theme.
 • Fixed – Log errors instead of throwing an exception when a particular table can't be cleaned.
 • Fixed – Avoid logging fatal exceptions when stopping a faulting background process.
-• Fixed – Don't display checkboxes in the Dashboard UI when job details can not be fetched.
+• Fixed – Don't display checkboxes in the Dashboard UI when job details can’t be fetched.
 • Fixed – Scrollbars in WebKit-based browsers are now dark in dark mode.
 • Project – Disable tests for `netcoreapp1.0` and `netcoreapp2.1` targets since they aren't supported in AppVeyor.
 • Project – Add a `net6.0` target for unit tests instead of the removed ones.
@@ -280,27 +486,35 @@ Hangfire.SqlServer
 Hangfire.SqlServer.Msmq
 
 • Breaking – Dropped the `NET45` platform target in favor of the `NET451` target to support Visual Studio 2022.
-
+]]>
     </releaseNotes>
     <dependencies>
       <group targetFramework="net451">
-        <dependency id="Hangfire.Core" version="[0.0.0]" />
-        <dependency id="Hangfire.SqlServer" version="[0.0.0]" />
+        <dependency id="Hangfire.Core" version="[%version%]" />
+        <dependency id="Hangfire.SqlServer" version="[%version%]" />
         <dependency id="Microsoft.Owin.Host.SystemWeb" version="3.0.0" />
       </group>
       <group targetFramework="netstandard1.3">
-        <dependency id="Hangfire.Core" version="[0.0.0]" />
-        <dependency id="Hangfire.SqlServer" version="[0.0.0]" />
-        <dependency id="Hangfire.AspNetCore" version="[0.0.0]" />
+        <dependency id="Hangfire.Core" version="[%version%]" />
+        <dependency id="Hangfire.SqlServer" version="[%version%]" />
+        <dependency id="Hangfire.AspNetCore" version="[%version%]" />
       </group>
       <group targetFramework="netstandard2.0">
-        <dependency id="Hangfire.Core" version="[0.0.0]" />
-        <dependency id="Hangfire.SqlServer" version="[0.0.0]" />
-        <dependency id="Hangfire.AspNetCore" version="[0.0.0]" />
+        <dependency id="Hangfire.Core" version="[%version%]" />
+        <dependency id="Hangfire.SqlServer" version="[%version%]" />
+        <dependency id="Hangfire.AspNetCore" version="[%version%]" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file src="Content\readme.txt" target="readme.txt" />
+    <file src="..\nuspecs\icon.png" />
+
+    <file src="README.md" />
+    <file src="LICENSE.md" />
+    <file src="COPYING" />
+    <file src="COPYING.LESSER" />
+    <file src="NOTICES" />
+    <file src="LICENSE_STANDARD" />
+    <file src="LICENSE_ROYALTYFREE" />
   </files>
 </package>
