@@ -118,467 +118,452 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AwaitingJobsPage_ContinuationsWarning_Text" xml:space="preserve">
-    <value>As sequências estão a funcionar conforme o esperado. O sistema atual de armazenamento não permite algumas consultas necessárias à apresentação da página. Altere o sistema de armazenamento ou aguarde até que sejam implementadas.</value>
+    <value>Не волнуйтесь, продолжения работают как положено. Но ваше текущее хранилище заданий не поддерживает некоторые запросы, требуемые для отображения данной страницы. Пожалуйста, попробуйте обновить ваше хранилище или подождите, пока не будет реализован полный набор инструкций.</value>
   </data>
   <data name="AwaitingJobsPage_ContinuationsWarning_Title" xml:space="preserve">
-    <value>Continuação funciona, mas esta página não pode ser exibida.</value>
+    <value>Продолжения работают, но данная страница не может быть отображена</value>
   </data>
   <data name="AwaitingJobsPage_NoJobs" xml:space="preserve">
-    <value>Nenhuma tarefa pendente encontrada.</value>
+    <value>Ожидающих выполнения заданий не найдено.</value>
   </data>
   <data name="AwaitingJobsPage_Table_Options" xml:space="preserve">
-    <value>Opções</value>
+    <value>Настройки</value>
   </data>
   <data name="AwaitingJobsPage_Table_Parent" xml:space="preserve">
-    <value>Pai</value>
-    <comment>Fuzzy</comment>
+    <value>Родитель</value>
   </data>
   <data name="AwaitingJobsPage_Title" xml:space="preserve">
-    <value>Tarefas em espera</value>
+    <value>Ожидающие выполнения задания</value>
   </data>
   <data name="Common_Created" xml:space="preserve">
-    <value>Criado</value>
+    <value>Создано</value>
   </data>
   <data name="Common_Delete" xml:space="preserve">
-    <value>Remover</value>
+    <value>Удалить</value>
   </data>
   <data name="Common_DeleteConfirm" xml:space="preserve">
-    <value>Tem certeza de que deseja REMOVER TODAS as tarefas selecionadas?</value>
+    <value>Вы действительно хотите УДАЛИТЬ ВСЕ выбранные задания?</value>
   </data>
   <data name="Common_Deleting" xml:space="preserve">
-    <value>Removendo...</value>
+    <value>Удаление...</value>
   </data>
   <data name="Common_DeleteSelected" xml:space="preserve">
-    <value>Remover registros selecionados</value>
+    <value>Удалить выбранные</value>
   </data>
   <data name="Common_EnqueueButton_Text" xml:space="preserve">
-    <value>Colocar tarefa na fila</value>
+    <value>Поместить задания в очередь</value>
   </data>
   <data name="Common_Enqueueing" xml:space="preserve">
-    <value>Colocando na fila...</value>
+    <value>Размещение в очереди...</value>
   </data>
   <data name="Common_Fetched" xml:space="preserve">
-    <value>Obtidos</value>
-    <comment>Fuzzy</comment>
+    <value>Получено</value>
   </data>
   <data name="Common_Id" xml:space="preserve">
-    <value>Id</value>
+    <value>ID</value>
   </data>
   <data name="Common_Job" xml:space="preserve">
-    <value>Tarefa</value>
+    <value>Задание</value>
   </data>
   <data name="Common_JobExpired" xml:space="preserve">
-    <value>Tarefa expirada</value>
+    <value>Срок действия задания истёк.</value>
   </data>
   <data name="Common_JobStateChanged_Text" xml:space="preserve">
-    <value>O status da tarefa foi alterado enquanto as informações estavam sendo obtidas.</value>
-    <comment>Fuzzy</comment>
+    <value>Состояние задания изменилось во время получения данных.</value>
   </data>
   <data name="Common_LessDetails" xml:space="preserve">
-    <value>Menos detalhes...</value>
+    <value>Меньше деталей...</value>
   </data>
   <data name="Common_MoreDetails" xml:space="preserve">
-    <value>Mais detalhes...</value>
+    <value>Больше деталей...</value>
   </data>
   <data name="Common_NotAvailable" xml:space="preserve">
-    <value>Indisponível</value>
+    <value>Н/Д</value>
   </data>
   <data name="Common_PeriodDay" xml:space="preserve">
-    <value>Dia</value>
+    <value>День</value>
   </data>
   <data name="Common_PeriodWeek" xml:space="preserve">
-    <value>Semana</value>
+    <value>Неделя</value>
   </data>
   <data name="Common_Reason" xml:space="preserve">
-    <value>Motivo</value>
+    <value>Причина</value>
   </data>
   <data name="Common_RequeueJobs" xml:space="preserve">
-    <value>Reagendar tarefas</value>
-    <comment>Fuzzy</comment>
+    <value>Заново поместить в очередь</value>
   </data>
   <data name="Common_Retry" xml:space="preserve">
-    <value>Tentar novamente</value>
+    <value>Попробовать снова</value>
   </data>
   <data name="Common_Server" xml:space="preserve">
-    <value>Servidor</value>
+    <value>Сервер</value>
   </data>
   <data name="Common_State" xml:space="preserve">
-    <value>Estado</value>
+    <value>Статус</value>
   </data>
   <data name="Common_Unknown" xml:space="preserve">
-    <value>Desconhecido</value>
+    <value>Неизвестно</value>
   </data>
   <data name="DeletedJobsPage_NoJobs" xml:space="preserve">
-    <value>Nenhuma tarefa removida encontrada.</value>
+    <value>Удалённых заданий не найдено.</value>
   </data>
   <data name="DeletedJobsPage_Table_Deleted" xml:space="preserve">
-    <value>Removidas</value>
+    <value>Удалено</value>
+  </data>
+  <data name="DeletedJobsPage_Table_Exception" xml:space="preserve">
+    <value>Исключение</value>
   </data>
   <data name="DeletedJobsPage_Title" xml:space="preserve">
-    <value>Tarefas removidas</value>
+    <value>Удалённые задания</value>
   </data>
   <data name="EnqueuedJobsPage_NoJobs" xml:space="preserve">
-    <value>A fila está vazia.</value>
+    <value>Очередь пуста.</value>
   </data>
   <data name="EnqueuedJobsPage_Title" xml:space="preserve">
-    <value>Tarefas enfileiradas</value>
+    <value>Задания в очереди</value>
   </data>
   <data name="FailedJobsPage_FailedJobsNotExpire_Warning_Html" xml:space="preserve">
-    <value>&lt;strong&gt;As tarefas em falha não expiram&lt;/strong&gt; para permitir que sejam colocadas novamente em fila a qualquer momento. Deve recolocá-las em fila, removê-las manualmente ou definir o atributo &lt;code&gt; AutomaticRetry
-                (OnAttemptsExceeded = AttemptsExceededAction.Delete)&lt;/code&gt; para removê-las automaticamente.</value>
+    <value>&lt;strong&gt;Срок действия завершённых с ошибкой заданий не ограничен.&lt;/strong&gt; Это позволяет повторно размещать их в очереди без ограничений по времени. Вы должны вручную повторно поместить их в очередь либо удалить. Также можно использовать в коде атрибут &lt;code&gt;AutomaticRetry(OnAttemptsExceeded = AttemptsExceededAction.Delete)&lt;/code&gt;
+                для автоматического удаления таких заданий.</value>
   </data>
   <data name="FailedJobsPage_NoJobs" xml:space="preserve">
-    <value>Não existem tarefas em falha neste momento.</value>
+    <value>У вас нет завершённых с ошибкой заданий.</value>
   </data>
   <data name="FailedJobsPage_Table_Failed" xml:space="preserve">
-    <value>Falhas</value>
+    <value>Завершены с ошибкой</value>
   </data>
   <data name="FailedJobsPage_Title" xml:space="preserve">
-    <value>Tarefas em falha</value>
+    <value>Завершённые с ошибкой задания</value>
   </data>
   <data name="FetchedJobsPage_NoJobs" xml:space="preserve">
-    <value>A fila está vazia.</value>
+    <value>Очередь пуста.</value>
   </data>
   <data name="FetchedJobsPage_Title" xml:space="preserve">
-    <value>Tarefas obtidas</value>
-    <comment>Fuzzy</comment>
+    <value>Полученные задания</value>
   </data>
   <data name="HomePage_HistoryGraph" xml:space="preserve">
-    <value>Gráfico histórico</value>
+    <value>Граф истории</value>
   </data>
   <data name="HomePage_RealtimeGraph" xml:space="preserve">
-    <value>Gráfico em tempo real</value>
+    <value>Граф реального времени</value>
   </data>
   <data name="HomePage_Title" xml:space="preserve">
-    <value>Painel de controle</value>
-    <comment>Fuzzy</comment>
+    <value>Обзор</value>
   </data>
   <data name="JobDetailsPage_Created" xml:space="preserve">
-    <value>Criado</value>
+    <value>Создано</value>
   </data>
   <data name="JobDetailsPage_DeleteConfirm" xml:space="preserve">
-    <value>Tem certeza de que deseja remover esta tarefa?</value>
+    <value>Вы действительно хотите удалить данное задание?</value>
   </data>
   <data name="JobDetailsPage_State" xml:space="preserve">
-    <value>Estado</value>
+    <value>Состояние</value>
   </data>
   <data name="JobDetailsPage_JobAbortedNotActive_Warning_Html" xml:space="preserve">
-    <value>&lt;strong&gt;A tarefa foi cancelada&lt;/strong&gt; – processada pelo servidor
-                        &lt;code&gt;{0}&lt;/code&gt; que não está na lista 
-                        &lt;a href="{1}"&gt; de servidores ativos&lt;/a&gt; neste momento.
-                        Será repetida automaticamente depois de um intervalo de invisibilidade,
-                        no entanto pode ser recolocá-la em fila ou removê-la manualmente.</value>
+    <value>&lt;strong&gt;Выполнение задания было прервано&lt;/strong&gt; – оно выполняется сервером &lt;code&gt;{0}&lt;/code&gt;, которого нет в списке 
+           &lt;a href="{1}"&gt;активных серверов&lt;/a&gt;. Задание будет запущено повторно после периода невидимости, но вы можете перезапустить или удалить его вручную.</value>
   </data>
   <data name="JobDetailsPage_JobAbortedWithHeartbeat_Warning_Html" xml:space="preserve">
-    <value>&lt;strong&gt;A tarefa foi abortada&lt;/strong&gt; - foi processada pelo servidor &lt;code&gt;{0}&lt;/code&gt; que relatou uma pulsação mais de um minuto atrás. Ela será recuperado automaticamente após o período de invisibilidade, mas você poderá colocá-lo novamente na fila ou excluí-lo manualmente.</value>
+    <value>&lt;strong&gt;Кажется, выполнение задания было прервано&lt;/strong&gt; – оно выполняется сервером &lt;code&gt;{0}&lt;/code&gt;, который последний раз отправлял heartbeat-сообщение более минуты назад. Задание будет запущено повторно после периода невидимости, но вы можете перезапустить или удалить его вручную.</value>
   </data>
   <data name="JobDetailsPage_JobExpired" xml:space="preserve">
-    <value>A tarefa com o Id '{0}' expirou ou não foi encontrada no servidor.</value>
+    <value>Фоновое задание '{0}' не может быть найдено на сервере, либо срок его действия истёк.</value>
   </data>
   <data name="JobDetailsPage_JobFinished_Warning_Html" xml:space="preserve">
-    <value>&lt;strong&gt;A tarefa terminou&lt;/strong&gt;.
-                    Será removida automaticamente em &lt;em&gt;&lt;abbr data-moment="{0}"&gt;{1}&lt;/abbr&gt;&lt;/em&gt;.</value>
+    <value>&lt;strong&gt;Задание завершено&lt;/strong&gt;. Оно будет удалено автоматически &lt;em&gt;&lt;abbr data-moment="{0}"&gt;{1}&lt;/abbr&gt;&lt;/em&gt;.</value>
   </data>
   <data name="JobDetailsPage_JobId" xml:space="preserve">
-    <value>Id da Tarefa</value>
+    <value>ID задания</value>
   </data>
   <data name="JobDetailsPage_Requeue" xml:space="preserve">
-    <value>Colocar novamente na fila</value>
-    <comment>Fuzzy</comment>
+    <value>Заново поместить в очередь</value>
   </data>
   <data name="LayoutPage_Back" xml:space="preserve">
-    <value>Voltar</value>
+    <value>Обратно на сайт</value>
   </data>
   <data name="LayoutPage_Footer_Generatedms" xml:space="preserve">
-    <value>Gerado: {0} ms</value>
+    <value>Сгенерировано за {0}мс</value>
+  </data>
+  <data name="LayoutPage_Footer_StorageTime" xml:space="preserve">
+    <value>Время хранилища:</value>
+  </data>
+  <data name="LayoutPage_Footer_TimeIsOutOfSync" xml:space="preserve">
+    <value>Время приложения отличается от времени хранилища</value>
   </data>
   <data name="LayoutPage_Footer_Time" xml:space="preserve">
-    <value>Hora:</value>
+    <value>Время приложения:</value>
   </data>
   <data name="Paginator_Next" xml:space="preserve">
-    <value>Próxima</value>
+    <value>Далее</value>
   </data>
   <data name="Paginator_Prev" xml:space="preserve">
-    <value>Anterior</value>
+    <value>Назад</value>
   </data>
   <data name="Paginator_TotalItems" xml:space="preserve">
-    <value>Total registros</value>
+    <value>Всего элементов</value>
   </data>
   <data name="PerPageSelector_ItemsPerPage" xml:space="preserve">
-    <value>Registros por página</value>
+    <value>Элементов на странице</value>
   </data>
   <data name="ProcessingJobsPage_Aborted" xml:space="preserve">
-    <value>A tarefa foi aparentemente cancelada</value>
+    <value>Кажется, выполнение задания было прервано</value>
   </data>
   <data name="ProcessingJobsPage_NoJobs" xml:space="preserve">
-    <value>Nenhuma tarefa em processamento.</value>
+    <value>Нет выполняемых в данный момент заданий.</value>
   </data>
   <data name="ProcessingJobsPage_Table_Started" xml:space="preserve">
-    <value>Iniciadas</value>
+    <value>Запущено</value>
   </data>
   <data name="ProcessingJobsPage_Title" xml:space="preserve">
-    <value>Tarefas em processamento</value>
+    <value>Выполняемые задания</value>
   </data>
   <data name="QueuesPage_NoJobs" xml:space="preserve">
-    <value>Sem tarefas na fila.</value>
+    <value>Нет заданий в очереди.</value>
   </data>
   <data name="QueuesPage_NoQueues" xml:space="preserve">
-    <value>Sem tarefas na fila. Coloque uma tarefa em fila.</value>
+    <value>Не найдено заданий в очереди. Попробуйте поместить задание в очередь.</value>
   </data>
   <data name="QueuesPage_Table_Length" xml:space="preserve">
-    <value>Quantidade</value>
+    <value>Длина</value>
   </data>
   <data name="QueuesPage_Table_NextsJobs" xml:space="preserve">
-    <value>Próximas tarefas</value>
+    <value>Следующие задания</value>
   </data>
   <data name="QueuesPage_Table_Queue" xml:space="preserve">
-    <value>Fila</value>
+    <value>Очередь</value>
   </data>
   <data name="QueuesPage_Title" xml:space="preserve">
-    <value>Filas</value>
+    <value>Задания в очереди</value>
   </data>
   <data name="RecurringJobsPage_Canceled" xml:space="preserve">
-    <value>Cancelado</value>
+    <value>Отменено</value>
   </data>
   <data name="RecurringJobsPage_NoJobs" xml:space="preserve">
-    <value>Não foram encontradas tarefas recorrentes</value>
+    <value>Регламентных заданий не найдено.</value>
   </data>
   <data name="RecurringJobsPage_Table_Cron" xml:space="preserve">
-    <value>Cron</value>
+    <value>Шаблон CRON</value>
   </data>
   <data name="RecurringJobsPage_Table_LastExecution" xml:space="preserve">
-    <value>Última execução</value>
+    <value>Последнее выполнение</value>
   </data>
   <data name="RecurringJobsPage_Table_NextExecution" xml:space="preserve">
-    <value>Próxima execução</value>
+    <value>Следующее выполнение</value>
   </data>
   <data name="RecurringJobsPage_Table_TimeZone" xml:space="preserve">
-    <value>Fuso horário</value>
+    <value>Часовой пояс</value>
   </data>
   <data name="RecurringJobsPage_Title" xml:space="preserve">
-    <value>Tarefas recorrentes</value>
+    <value>Регламентные задания</value>
   </data>
   <data name="RecurringJobsPage_Triggering" xml:space="preserve">
-    <value>Acionando...</value>
+    <value>Запуск...</value>
   </data>
   <data name="RecurringJobsPage_TriggerNow" xml:space="preserve">
-    <value>Executar agora</value>
+    <value>Запустить сейчас</value>
   </data>
   <data name="RetriesPage_NoJobs" xml:space="preserve">
-    <value>Tudo OK – não há reagendamentos.</value>
+    <value>Всё в порядке – у вас нет запущенных повторно заданий.</value>
   </data>
   <data name="RetriesPage_Title" xml:space="preserve">
-    <value>Reagendamentos</value>
+    <value>Повторные запуски</value>
   </data>
   <data name="RetriesPage_Warning_Html" xml:space="preserve">
-    <value>&lt;h4&gt;O reagendamento está a funcionar, mas esta página não consegue ser apresentada&lt;/h4&gt;
+    <value>&lt;h4&gt;Повторные запуски работают, но страница не может быть отображена&lt;/h4&gt;
         &lt;p&gt;
-            O reagendamento está a funcionar como esperado. O sistema de armazenamento atual não permite algumas consultas necessárias à apresentação da página.  Altere o sistema de armazenamento ou aguarde que as funcionalidades sejam implementadas.
+            Не волнуйтесь, повторные запуски работают как положено. Но ваше текущее хранилище заданий не поддерживает некоторые запросы, требуемые для отображения данной страницы. Пожалуйста, попробуйте обновить ваше хранилище или подождите, пока не будет реализован полный набор инструкций.
         &lt;/p&gt;
         &lt;p&gt;
-            Acesse &lt;a href="{0}"&gt;Tarefas agendadas&lt;/a&gt; para ver todas as tarefas agendadas e reagendadas.
+            Пожалуйста, перейдите на страницу &lt;a href="{0}"&gt;Запланированные задания&lt;/a&gt; для получения списка запланированных заданий (включая запущенные повторно).
         &lt;/p&gt;</value>
   </data>
   <data name="ScheduledJobsPage_EnqueueNow" xml:space="preserve">
-    <value>Colocar em fila agora</value>
+    <value>Поместить в очередь сейчас</value>
   </data>
   <data name="ScheduledJobsPage_NoJobs" xml:space="preserve">
-    <value>Sem tarefas agendadas.</value>
+    <value>Нет запланированных заданий.</value>
   </data>
   <data name="ScheduledJobsPage_Table_Enqueue" xml:space="preserve">
-    <value>Reagendar</value>
+    <value>Поместить в очередь</value>
   </data>
   <data name="ScheduledJobsPage_Table_Scheduled" xml:space="preserve">
-    <value>Agendado</value>
+    <value>Запланировано</value>
   </data>
   <data name="ScheduledJobsPage_Title" xml:space="preserve">
-    <value>Tarefas Agendadas</value>
+    <value>Запланированные задания</value>
   </data>
   <data name="ServersPage_NoServers" xml:space="preserve">
-    <value>Não existem servidores activos. As tarefas não serão executadas.</value>
+    <value>Нет активных серверов. Фоновые задания не будут выполняться.</value>
   </data>
   <data name="ServersPage_Table_Heartbeat" xml:space="preserve">
-    <value>Sinal</value>
-    <comment>Fuzzy</comment>
+    <value>Heartbeat-сообщения</value>
   </data>
   <data name="ServersPage_Table_Name" xml:space="preserve">
-    <value>Nome</value>
+    <value>Название</value>
   </data>
   <data name="ServersPage_Table_Queues" xml:space="preserve">
-    <value>Filas</value>
+    <value>Очереди</value>
   </data>
   <data name="ServersPage_Table_Started" xml:space="preserve">
-    <value>Iniciadas</value>
+    <value>Запущен</value>
   </data>
   <data name="ServersPage_Table_Workers" xml:space="preserve">
-    <value>Serviços de execução</value>
-    <comment>Fuzzy</comment>
+    <value>Рабочие узлы</value>
   </data>
   <data name="ServersPage_Title" xml:space="preserve">
-    <value>Servidores</value>
+    <value>Серверы</value>
   </data>
   <data name="SucceededJobsPage_NoJobs" xml:space="preserve">
-    <value>Nenhuma tarefa concluída foi encontrada.</value>
+    <value>Выполненные задания не найдены.</value>
   </data>
   <data name="SucceededJobsPage_Table_Succeeded" xml:space="preserve">
-    <value>Concluídas</value>
+    <value>Выполнено</value>
   </data>
   <data name="SucceededJobsPage_Table_TotalDuration" xml:space="preserve">
-    <value>Duração total</value>
-  </data>
-  <data name="SucceededJobsPage_Title" xml:space="preserve">
-    <value>Tarefas concluídas</value>
-  </data>
-  <data name="JobsSidebarMenu_Awaiting" xml:space="preserve">
-    <value>Em espera</value>
-  </data>
-  <data name="JobsSidebarMenu_Deleted" xml:space="preserve">
-    <value>Removidas</value>
-  </data>
-  <data name="JobsSidebarMenu_Failed" xml:space="preserve">
-    <value>Em falha</value>
-  </data>
-  <data name="JobsSidebarMenu_Processing" xml:space="preserve">
-    <value>Processando</value>
-  </data>
-  <data name="JobsSidebarMenu_Scheduled" xml:space="preserve">
-    <value>Agendadas</value>
-  </data>
-  <data name="JobsSidebarMenu_Succeeded" xml:space="preserve">
-    <value>Concluídas</value>
-  </data>
-  <data name="NavigationMenu_Jobs" xml:space="preserve">
-    <value>Tarefas</value>
-  </data>
-  <data name="NavigationMenu_RecurringJobs" xml:space="preserve">
-    <value>Tarefas Recorrentes</value>
-  </data>
-  <data name="NavigationMenu_Retries" xml:space="preserve">
-    <value>Reagendamentos</value>
-  </data>
-  <data name="NavigationMenu_Servers" xml:space="preserve">
-    <value>Servidores</value>
-  </data>
-  <data name="Common_CannotFindTargetMethod" xml:space="preserve">
-    <value>Não foi possível encontrar o método alvo.</value>
-    <comment>Fuzzy</comment>
-  </data>
-  <data name="Common_Enqueued" xml:space="preserve">
-    <value>Enfileiradas</value>
-  </data>
-  <data name="Common_NoState" xml:space="preserve">
-    <value>Sem estado</value>
-  </data>
-  <data name="JobsSidebarMenu_Enqueued" xml:space="preserve">
-    <value>Enfileiradas</value>
-  </data>
-  <data name="Metrics_ActiveConnections" xml:space="preserve">
-    <value>Conexões ativas</value>
-  </data>
-  <data name="Metrics_DeletedJobs" xml:space="preserve">
-    <value>Tarefas Removidas</value>
-  </data>
-  <data name="Metrics_FailedJobs" xml:space="preserve">
-    <value>Tarefas em falha</value>
-  </data>
-  <data name="Metrics_ProcessingJobs" xml:space="preserve">
-    <value>Tarefas em processamento</value>
-  </data>
-  <data name="Metrics_RecurringJobs" xml:space="preserve">
-    <value>Tarefas recorrentes</value>
-  </data>
-  <data name="Metrics_Retries" xml:space="preserve">
-    <value>Reagendamentos</value>
-  </data>
-  <data name="Metrics_ScheduledJobs" xml:space="preserve">
-    <value>Tarefas Agendadas</value>
-  </data>
-  <data name="Metrics_Servers" xml:space="preserve">
-    <value>Servidores</value>
-  </data>
-  <data name="Metrics_SucceededJobs" xml:space="preserve">
-    <value>Tarefas com sucesso</value>
-  </data>
-  <data name="Metrics_TotalConnections" xml:space="preserve">
-    <value>Total de conexões</value>
-  </data>
-  <data name="Common_Condition" xml:space="preserve">
-    <value>Condição</value>
-  </data>
-  <data name="Common_Continuations" xml:space="preserve">
-    <value>Continuações</value>
-  </data>
-  <data name="Metrics_AwaitingCount" xml:space="preserve">
-    <value>Em espera</value>
-  </data>
-  <data name="Metrics_EnqueuedCountOrNull" xml:space="preserve">
-    <value>Na fila</value>
-  </data>
-  <data name="Metrics_EnqueuedQueuesCount" xml:space="preserve">
-    <value>Enfileiradas / Filas</value>
-  </data>
-  <data name="HomePage_GraphHover_Failed" xml:space="preserve">
-    <value>Com falha</value>
-  </data>
-  <data name="HomePage_GraphHover_Succeeded" xml:space="preserve">
-    <value>Concluídos</value>
-  </data>
-  <data name="DeletedJobsPage_Table_Exception" xml:space="preserve">
-    <value>Exceção</value>
-  </data>
-  <data name="LayoutPage_Footer_StorageTime" xml:space="preserve">
-    <value>Tempo de armazenamento:</value>
-  </data>
-  <data name="LayoutPage_Footer_TimeIsOutOfSync" xml:space="preserve">
-    <value>A hora da aplicação está dessincronizada com a hora do sistema de armazenamento</value>
+    <value>Общая длительность</value>
   </data>
   <data name="SucceededJobsPage_Table_Latency" xml:space="preserve">
-    <value>Latência</value>
+    <value>Задержка</value>
   </data>
   <data name="SucceededJobsPage_Table_Duration" xml:space="preserve">
-    <value>Duração</value>
+    <value>Длительность</value>
+  </data>
+  <data name="SucceededJobsPage_Title" xml:space="preserve">
+    <value>Выполненные задания</value>
+  </data>
+  <data name="JobsSidebarMenu_Awaiting" xml:space="preserve">
+    <value>Ожидают выполнения</value>
+  </data>
+  <data name="JobsSidebarMenu_Deleted" xml:space="preserve">
+    <value>Удалены</value>
+  </data>
+  <data name="JobsSidebarMenu_Failed" xml:space="preserve">
+    <value>Завершены с ошибкой</value>
+  </data>
+  <data name="JobsSidebarMenu_Processing" xml:space="preserve">
+    <value>Выполняются</value>
+  </data>
+  <data name="JobsSidebarMenu_Scheduled" xml:space="preserve">
+    <value>Запланированы</value>
+  </data>
+  <data name="JobsSidebarMenu_Succeeded" xml:space="preserve">
+    <value>Выполнены</value>
+  </data>
+  <data name="NavigationMenu_Jobs" xml:space="preserve">
+    <value>Задания</value>
+  </data>
+  <data name="NavigationMenu_RecurringJobs" xml:space="preserve">
+    <value>Регламентные задания</value>
+  </data>
+  <data name="NavigationMenu_Retries" xml:space="preserve">
+    <value>Повторные запуски</value>
+  </data>
+  <data name="NavigationMenu_Servers" xml:space="preserve">
+    <value>Серверы</value>
+  </data>
+  <data name="Common_CannotFindTargetMethod" xml:space="preserve">
+    <value>Не удалось найти целевой метод. </value>
+  </data>
+  <data name="Common_Enqueued" xml:space="preserve">
+    <value>Помещено в очередь</value>
+  </data>
+  <data name="Common_NoState" xml:space="preserve">
+    <value>Нет состояния</value>
+  </data>
+  <data name="JobsSidebarMenu_Enqueued" xml:space="preserve">
+    <value>Помещены в очередь</value>
+  </data>
+  <data name="Metrics_ActiveConnections" xml:space="preserve">
+    <value>Текущие подключения</value>
+  </data>
+  <data name="Metrics_DeletedJobs" xml:space="preserve">
+    <value>Удалённые задания</value>
+  </data>
+  <data name="Metrics_FailedJobs" xml:space="preserve">
+    <value>Завершённые с ошибкой задания</value>
+  </data>
+  <data name="Metrics_ProcessingJobs" xml:space="preserve">
+    <value>Выполняемые задания.</value>
+  </data>
+  <data name="Metrics_RecurringJobs" xml:space="preserve">
+    <value>Регламентные задания</value>
+  </data>
+  <data name="Metrics_Retries" xml:space="preserve">
+    <value>Повторные запуски</value>
+  </data>
+  <data name="Metrics_ScheduledJobs" xml:space="preserve">
+    <value>Запланированные задания</value>
+  </data>
+  <data name="Metrics_Servers" xml:space="preserve">
+    <value>Серверы</value>
+  </data>
+  <data name="Metrics_SucceededJobs" xml:space="preserve">
+    <value>Успешно выполненные задания</value>
+  </data>
+  <data name="Metrics_TotalConnections" xml:space="preserve">
+    <value>Всего подключений</value>
+  </data>
+  <data name="Common_Condition" xml:space="preserve">
+    <value>Условие</value>
+  </data>
+  <data name="Common_Continuations" xml:space="preserve">
+    <value>Продолжения</value>
+  </data>
+  <data name="Metrics_AwaitingCount" xml:space="preserve">
+    <value>В ожидании</value>
+  </data>
+  <data name="Metrics_EnqueuedCountOrNull" xml:space="preserve">
+    <value>В очереди</value>
+  </data>
+  <data name="Metrics_EnqueuedQueuesCount" xml:space="preserve">
+    <value>В очереди / Очередей</value>
   </data>
   <data name="Metrics_FailedCountOrNull" xml:space="preserve">
-    <value>{0} tarefa(s) com erro encontradas. Reagendar ou remover manualmente.</value>
+    <value>Найдено {0} завершённых с ошибкой заданий. Запустите их заново, либо удалите их вручную.</value>
+  </data>
+  <data name="HomePage_GraphHover_Failed" xml:space="preserve">
+    <value>Завершены с ошибкой</value>
+  </data>
+  <data name="HomePage_GraphHover_Succeeded" xml:space="preserve">
+    <value>Выполнены</value>
   </data>
   <data name="Common_Disabled" xml:space="preserve">
-    <value>Inativo</value>
+    <value>Отключено</value>
   </data>
   <data name="RecurringJobsPage_RecurringJobDisabled_Tooltip" xml:space="preserve">
-    <value>A expressão Cron é inválida ou não possui nenhuma ocorrência nos próximos 100 anos</value>
+    <value>Шаблон CRON некорректен, либо он ни разу не будет выполнен в следующие сто лет.</value>
   </data>
   <data name="ServersPage_Note_Text" xml:space="preserve">
-    <value>Alguns servidores não reportaram sinal no último minuto e podem ter sido abortados. Se não reportarem sinal em breve, serão removidos automaticamente após o tempo limite ser excedido, sem necessidade de ação manual.
-                    Tarefas incompletas em execução nesses servidores serão reenfileiradas automaticamente, mas você pode acelerar o processo verificando a página &lt;a href="{0}"&gt;Tarefas em processamento&lt;/a&gt;.</value>
+    <value>Некоторые серверы могут быть остановленными, т.к. они не отправляли heartbeat-сообщения более минуты. Если они не отправят heartbeat-сообщения в ближайшем будущем, дополнительных действий не потребуется - эти серверы будут автоматически удалены после отсечки. Незавершённые фоновые задания, выполняемые на этих серверах, будут автоматически заново добавлены в очередь, но вы можете ускорить процесс с помощью страницы &lt;a href="{0}"&gt;Выполняемые задания&lt;/a&gt;.</value>
   </data>
   <data name="ServersPage_Note_Title" xml:space="preserve">
-    <value>Servidores abortados serão removidos automaticamente</value>
+    <value>Остановленные серверы будут удалены автоматически.</value>
   </data>
   <data name="ServersPage_Active" xml:space="preserve">
-    <value>Ativo</value>
+    <value>Активны</value>
   </data>
   <data name="ServersPage_Possibly_Aborted" xml:space="preserve">
-    <value>Possivelmente abortado</value>
+    <value>Предположительно остановлены</value>
   </data>
   <data name="Common_Error" xml:space="preserve">
-    <value>Erro</value>
+    <value>Ошибка</value>
   </data>
   <data name="JobDetailsPage_Parameters" xml:space="preserve">
-    <value>Parâmetros</value>
+    <value>Параметры</value>
   </data>
   <data name="Metrics_SQLServer_SchemaVersion" xml:space="preserve">
-    <value>Versão Schema</value>
+    <value>Версия схемы</value>
   </data>
   <data name="AwaitingJobsPage_Table_Since" xml:space="preserve">
-    <value>Desde</value>
+    <value>С</value>
   </data>
   <data name="Metrics_SQLServer_ActiveTransactions" xml:space="preserve">
-    <value>Transações Ativas</value>
+    <value>Активные транзакции</value>
   </data>
   <data name="Metrics_SQLServer_DataFilesSize" xml:space="preserve">
-    <value>Arquivo(s) Dados Usados (MB)</value>
+    <value>Размер файлов данных БД (МБ)</value>
   </data>
   <data name="Metrics_SQLServer_LogFilesSize" xml:space="preserve">
-    <value>Arquivo(s) Log Usados (MB)</value>
+    <value>Размер файлов логов БД (МБ)</value>
   </data>
 </root>

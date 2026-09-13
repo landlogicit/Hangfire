@@ -34,8 +34,8 @@
       },
       "Cronos": {
         "type": "Transitive",
-        "resolved": "0.8.3",
-        "contentHash": "lep1gKd68dBEt7isLnnHadJHwUlhctMd+gYGMk3p8eOT9dIfw6fXJFkreYBQ8dIXm23S01ilHgpk2ttou5Wvtw=="
+        "resolved": "0.11.1",
+        "contentHash": "5Ug+giPQITSAdTp/METAsofRSSUi3I5p7t4dlcXnzUgUzwZb4HkOBcYfpHuPwAHrnKJjmyW8amVzLD6mfLpaBg=="
       },
       "Dapper": {
         "type": "Transitive",
@@ -54,8 +54,8 @@
       },
       "Microsoft.Owin": {
         "type": "Transitive",
-        "resolved": "4.2.2",
-        "contentHash": "jt410l/8dvCIguRdU7dupYdm4kGLepVdD8EOTKU4nYZcLRrn6kQYqI6pbJOTJp7Vlm/T2WUF5bzyKK2z29xtjg==",
+        "resolved": "4.2.3",
+        "contentHash": "uoOKm7Ouj06+ULS7Ss60tRM2E5t0ku7rQ7cJk864jArtE35WTJKMzUxgHxs7gdiqHZYnC3ddZSr9zj8yRjguEA==",
         "dependencies": {
           "Owin": "1.0.0"
         }
@@ -79,8 +79,8 @@
         "type": "Project",
         "dependencies": {
           "CronExpressionDescriptor": "[1.21.0, )",
-          "Cronos": "[0.8.3, )",
-          "Microsoft.Owin": "[4.2.2, )",
+          "Cronos": "[0.11.1, )",
+          "Microsoft.Owin": "[4.2.3, )",
           "Newtonsoft.Json": "[5.0.1, )",
           "Owin": "[1.0.0, )"
         }

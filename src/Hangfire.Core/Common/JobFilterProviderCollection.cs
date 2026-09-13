@@ -14,6 +14,7 @@
 // License along with Hangfire. If not, see <http://www.gnu.org/licenses/>.
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -24,6 +25,8 @@ namespace Hangfire.Common
     /// </summary>
     public class JobFilterProviderCollection : Collection<IJobFilterProvider>, IJobFilterProvider
     {
+        private static readonly JobFilterComparer FilterComparer = new JobFilterComparer();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="JobFilterProviderCollection"/> 
         /// class.
@@ -54,7 +57,7 @@ namespace Hangfire.Common
             if (combinedFilters.Count > 1)
             {
                 // Sorting before removing duplicates in the correct order
-                combinedFilters.Sort(Comparison);
+                combinedFilters = combinedFilters.OrderBy(static filter => filter, FilterComparer).ToList();
                 RemoveDuplicates(combinedFilters);
             }
 
@@ -87,45 +90,48 @@ namespace Hangfire.Common
             return true;
         }
 
-        private static int Comparison(JobFilter x, JobFilter y)
+        private sealed class JobFilterComparer : IComparer<JobFilter>
         {
-            // Nulls always have to be less than non-nulls
-            if (x == null && y == null)
+            public int Compare(JobFilter x, JobFilter y)
             {
+                // Nulls always have to be less than non-nulls
+                if (x == null && y == null)
+                {
+                    return 0;
+                }
+                if (x == null)
+                {
+                    return -1;
+                }
+                if (y == null)
+                {
+                    return 1;
+                }
+
+                // Sort first by order...
+
+                if (x.Order < y.Order)
+                {
+                    return -1;
+                }
+                if (x.Order > y.Order)
+                {
+                    return 1;
+                }
+
+                // ...then by scope
+
+                if (x.Scope < y.Scope)
+                {
+                    return -1;
+                }
+                if (x.Scope > y.Scope)
+                {
+                    return 1;
+                }
+
                 return 0;
             }
-            if (x == null)
-            {
-                return -1;
-            }
-            if (y == null)
-            {
-                return 1;
-            }
-
-            // Sort first by order...
-
-            if (x.Order < y.Order)
-            {
-                return -1;
-            }
-            if (x.Order > y.Order)
-            {
-                return 1;
-            }
-
-            // ...then by scope
-
-            if (x.Scope < y.Scope)
-            {
-                return -1;
-            }
-            if (x.Scope > y.Scope)
-            {
-                return 1;
-            }
-
-            return 0;
         }
     }
 }
